@@ -146,60 +146,7 @@ struct ContentView: View {
 
 
 
-                // Selected Group Indicator
-                if let selectedIndex = selectedGroupIndex, selectedIndex < gameManager.favoriteGroups.count {
-                    let currentPlayerNames = gameManager.players.map { $0.name }
-                    let hasActiveSession = gameManager.hasActiveSessionWithPlayers(currentPlayerNames)
-                    let activeSession = gameManager.getActiveSessionWithPlayers(currentPlayerNames)
 
-                    VStack(spacing: 8) {
-                        HStack {
-                            Image(systemName: hasActiveSession ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                                .foregroundColor(hasActiveSession ? .orange : .green)
-                            Text("Selected Group: \(gameManager.favoriteGroups[selectedIndex].name)")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            Spacer()
-                        }
-
-                        HStack {
-                            Text("\(gameManager.players.count) players loaded")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
-
-                        if hasActiveSession, let activeSession = activeSession {
-                            HStack {
-                                Image(systemName: "play.circle.fill")
-                                    .foregroundColor(.orange)
-                                    .font(.caption)
-                                Text("Active game: \(activeSession.name)")
-                                    .font(.caption)
-                                    .foregroundColor(.orange)
-                                    .fontWeight(.medium)
-                                Spacer()
-                            }
-                        }
-
-                        // Debug info
-                        if !gameManager.players.isEmpty {
-                            HStack {
-                                Text("Players: \(gameManager.players.map { $0.name }.joined(separator: ", "))")
-                                    .font(.caption2)
-                                    .foregroundColor(.blue)
-                                Spacer()
-                            }
-                        }
-                    }
-                    .padding()
-                    .background((hasActiveSession ? Color.orange : Color.green).opacity(0.1))
-                    .cornerRadius(12)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke((hasActiveSession ? Color.orange : Color.green).opacity(0.3), lineWidth: 1)
-                    )
-                }
 
                 // Game Configuration Section
                 VStack(spacing: 16) {
@@ -375,6 +322,61 @@ struct ContentView: View {
                 .background(Color(.systemBackground))
                 .cornerRadius(20)
                 .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+
+                // Selected Group Indicator (moved under Favorite Groups)
+                if let selectedIndex = selectedGroupIndex, selectedIndex < gameManager.favoriteGroups.count {
+                    let currentPlayerNames = gameManager.players.map { $0.name }
+                    let hasActiveSession = gameManager.hasActiveSessionWithPlayers(currentPlayerNames)
+                    let activeSession = gameManager.getActiveSessionWithPlayers(currentPlayerNames)
+
+                    VStack(spacing: 8) {
+                        HStack {
+                            Image(systemName: hasActiveSession ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                                .foregroundColor(hasActiveSession ? .orange : .green)
+                            Text("Selected Group: \(gameManager.favoriteGroups[selectedIndex].name)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Spacer()
+                        }
+
+                        HStack {
+                            Text("\(gameManager.players.count) players loaded")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                        }
+
+                        if hasActiveSession, let activeSession = activeSession {
+                            HStack {
+                                Image(systemName: "play.circle.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.caption)
+                                Text("Active game: \(activeSession.name)")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                                    .fontWeight(.medium)
+                                Spacer()
+                            }
+                        }
+
+                        // Debug info
+                        if !gameManager.players.isEmpty {
+                            HStack {
+                                Text("Players: \(gameManager.players.map { $0.name }.joined(separator: ", "))")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                                Spacer()
+                            }
+                        }
+                    }
+                    .padding()
+                    .background((hasActiveSession ? Color.orange : Color.green).opacity(0.1))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke((hasActiveSession ? Color.orange : Color.green).opacity(0.3), lineWidth: 1)
+                    )
+                }
 
                 Spacer()
                 

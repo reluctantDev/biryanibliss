@@ -118,13 +118,15 @@ struct LeaderboardView: View {
 
                         VStack(spacing: 16) {
                             Button(action: {
-                                // Start new game with same players and settings
-                                gameManager.startNewGameWithSameSettings()
+                                // Create new game session and go back to main screen
+                                let newSession = gameManager.createGameSession()
                                 dismiss()
                                 isPresented = false
+                                // Call the callback to dismiss all views and return to main
+                                onNewGame?()
                             }) {
                                 HStack {
-                                    Image(systemName: "arrow.clockwise.circle.fill")
+                                    Image(systemName: "play.circle.fill")
                                         .font(.title2)
 
                                     Text("Play Again")
@@ -141,18 +143,17 @@ struct LeaderboardView: View {
                             }
 
                             Button(action: {
-                                // Reset everything and start fresh
-                                gameManager.resetGame()
-                                isPresented = false
+                                // Go back to main screen without creating new game
                                 dismiss()
-                                // Call the callback to dismiss all views
+                                isPresented = false
+                                // Call the callback to dismiss all views and return to main
                                 onNewGame?()
                             }) {
                                 HStack {
-                                    Image(systemName: "plus.circle.fill")
+                                    Image(systemName: "house.fill")
                                         .font(.title2)
 
-                                    Text("New Game")
+                                    Text("Back to Main Screen")
                                         .font(.headline)
                                         .fontWeight(.bold)
                                 }
@@ -165,44 +166,14 @@ struct LeaderboardView: View {
                                 .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
                             }
 
-                            Button(action: {
-                                // Keep current state and go back to setup for review
-                                dismiss()
-                                isPresented = false
-                            }) {
-                                HStack {
-                                    Image(systemName: "eye.fill")
-                                        .font(.title2)
-
-                                    Text("Review Game")
-                                        .font(.headline)
-                                        .fontWeight(.bold)
-                                }
-                                .foregroundColor(.blue)
-                                .padding(.vertical, 16)
-                                .padding(.horizontal, 20)
-                                .frame(maxWidth: .infinity)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(25)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 25)
-                                        .stroke(Color.blue, lineWidth: 2)
-                                )
-                            }
-
                             // Additional info text
                             VStack(spacing: 4) {
-                                Text("• Play Again: Same players, reset to initial credits")
+                                Text("• Play Again: Creates new game session with same players")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.leading)
 
-                                Text("• New Game: Reset all settings and start fresh")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.leading)
-
-                                Text("• Review Game: Keep final state for review")
+                                Text("• Back to Main Screen: Return to home without new game")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.leading)
