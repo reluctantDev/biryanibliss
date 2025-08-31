@@ -48,107 +48,94 @@ struct ContentView: View {
                         .multilineTextAlignment(.center)
                 }
                 .padding(.top)
-                
-                // Game Setup
-                VStack(spacing: 16) {
-                    Text("Game Configuration")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                    
 
-                    
-                    // Buy-in Credits (Editable)
+                // Game Sessions Section (Moved to top)
+                VStack(alignment: .leading, spacing: 16) {
                     HStack {
-                        Text("Buy-in Chips:")
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
+                        Image(systemName: "gamecontroller.fill")
+                            .foregroundColor(.green)
+                            .font(.title2)
+
+                        Text("Game Sessions")
+                            .font(.title2)
+                            .fontWeight(.bold)
 
                         Spacer()
-
-                        TextField("200", value: $gameManager.creditsPerBuyIn, format: .number)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 80)
-                            .onChange(of: gameManager.creditsPerBuyIn) { _ in
-                                gameManager.updateTotalPotCredits()
-                            }
-
-                        Text("Chips")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
                     }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
-                    
-                    // Number of Players
-                    HStack {
-                        Text("Number of Players:")
-                            .font(.subheadline)
-                            .foregroundColor(.primary)
 
-                        Spacer()
+                    if gameManager.gameSessions.isEmpty {
+                        VStack(spacing: 8) {
+                            Image(systemName: "gamecontroller")
+                                .font(.system(size: 40))
+                                .foregroundColor(.gray)
 
-                        Button(action: {
-                            if gameManager.numberOfPlayers > 1 {
-                                gameManager.numberOfPlayers -= 1
-                                gameManager.updateTotalPotCredits()
-                            }
-                        }) {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(.red)
+                            Text("No game sessions yet")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            Text("Click 'Start Game' to create your first session")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
                         }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
+                    } else {
+                        // Scrollable sessions with fixed height showing last 3 games, max 10 total
+                        let recentSessions = Array(gameManager.gameSessions.suffix(10).reversed())
+                        let visibleSessions = Array(recentSessions.prefix(3))
+                        let hasMoreSessions = recentSessions.count > 3
 
-                        Text("\(gameManager.numberOfPlayers)")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.blue)
-                            .frame(minWidth: 30)
-
-                        Button(action: {
-                            if gameManager.numberOfPlayers < 12 {
-                                gameManager.numberOfPlayers += 1
-                                gameManager.updateTotalPotCredits()
+                        VStack(spacing: 0) {
+                            // Always visible: Last 3 sessions
+                            ForEach(Array(visibleSessions.enumerated()), id: \.element.id) { index, session in
+                                let originalIndex = gameManager.gameSessions.firstIndex(where: { $0.id == session.id }) ?? 0
+                                GameSessionCard(
+                                    session: session,
+                                    onTap: {
+                                        selectedGameSession = session
+                                        gameManager.loadPlayersFromSession(session)
+                                        showingGame = true
+                                    },
+                                    onDelete: {
+                                        gameManager.deleteGameSession(at: originalIndex)
+                                    }
+                                )
+                                .padding(.bottom, index < visibleSessions.count - 1 ? 12 : 0)
                             }
-                        }) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(.green)
+
+                            // Scrollable area for additional sessions (4-10)
+                            if hasMoreSessions {
+                                ScrollView {
+                                    LazyVStack(spacing: 12) {
+                                        ForEach(Array(recentSessions.dropFirst(3).enumerated()), id: \.element.id) { index, session in
+                                            let originalIndex = gameManager.gameSessions.firstIndex(where: { $0.id == session.id }) ?? 0
+                                            GameSessionCard(
+                                                session: session,
+                                                onTap: {
+                                                    selectedGameSession = session
+                                                    gameManager.loadPlayersFromSession(session)
+                                                    showingGame = true
+                                                },
+                                                onDelete: {
+                                                    gameManager.deleteGameSession(at: originalIndex)
+                                                }
+                                            )
+                                        }
+                                    }
+                                    .padding(.top, 12)
+                                }
+                                .frame(maxHeight: 200) // Fixed height for scrollable area
+                            }
                         }
                     }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(12)
-                    
-                    // Total Pot Credits (Display Only)
-                    HStack {
-                        Text("Total Pot Chips:")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        Spacer()
-
-                        Text("\(Int(gameManager.totalPotCredits))")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.orange)
-
-                        Text("Chips")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-
                 }
                 .padding()
                 .background(Color(.systemBackground))
                 .cornerRadius(20)
                 .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+
+
 
                 // Selected Group Indicator
                 if let selectedIndex = selectedGroupIndex, selectedIndex < gameManager.favoriteGroups.count {
@@ -205,53 +192,107 @@ struct ContentView: View {
                     )
                 }
 
-                // Game Sessions Section
-                VStack(alignment: .leading, spacing: 16) {
+                // Game Configuration Section
+                VStack(spacing: 16) {
                     HStack {
-                        Image(systemName: "gamecontroller.fill")
-                            .foregroundColor(.green)
+                        Image(systemName: "gearshape.fill")
+                            .foregroundColor(.blue)
                             .font(.title2)
 
-                        Text("Game Sessions")
+                        Text("Game Configuration")
                             .font(.title2)
                             .fontWeight(.bold)
 
                         Spacer()
                     }
 
-                    if gameManager.gameSessions.isEmpty {
-                        VStack(spacing: 8) {
-                            Image(systemName: "gamecontroller")
-                                .font(.system(size: 40))
-                                .foregroundColor(.gray)
+                    VStack(spacing: 16) {
+                        // Buy-in Credits (Editable)
+                        HStack {
+                            Text("Buy-in Chips:")
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
 
-                            Text("No game sessions yet")
+                            Spacer()
+
+                            TextField("200", value: $gameManager.creditsPerBuyIn, format: .number)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 80)
+                                .onChange(of: gameManager.creditsPerBuyIn) { _ in
+                                    gameManager.updateTotalPotCredits()
+                                }
+
+                            Text("Chips")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+
+                        // Number of Players
+                        HStack {
+                            Text("Number of Players:")
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+
+                            Spacer()
+
+                            Button(action: {
+                                if gameManager.numberOfPlayers > 1 {
+                                    gameManager.numberOfPlayers -= 1
+                                    gameManager.updateTotalPotCredits()
+                                }
+                            }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.red)
+                            }
+
+                            Text("\(gameManager.numberOfPlayers)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.blue)
+                                .frame(minWidth: 30)
+
+                            Button(action: {
+                                if gameManager.numberOfPlayers < 12 {
+                                    gameManager.numberOfPlayers += 1
+                                    gameManager.updateTotalPotCredits()
+                                }
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.green)
+                            }
+                        }
+                        .padding()
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+
+                        // Total Pot Credits (Display Only)
+                        HStack {
+                            Text("Total Pot Chips:")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
 
-                            Text("Click 'Start Game' to create your first session")
+                            Spacer()
+
+                            Text("\(Int(gameManager.totalPotCredits))")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.orange)
+
+                            Text("Chips")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 20)
-                    } else {
-                        LazyVStack(spacing: 12) {
-                            ForEach(Array(gameManager.gameSessions.enumerated().reversed()), id: \.element.id) { index, session in
-                                GameSessionCard(
-                                    session: session,
-                                    onTap: {
-                                        selectedGameSession = session
-                                        gameManager.loadPlayersFromSession(session)
-                                        showingGame = true
-                                    },
-                                    onDelete: {
-                                        gameManager.deleteGameSession(at: gameManager.gameSessions.count - 1 - index)
-                                    }
-                                )
-                            }
-                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
                     }
                 }
                 .padding()
@@ -262,9 +303,13 @@ struct ContentView: View {
                 // Favorite Groups Section
                 VStack(spacing: 16) {
                     HStack {
+                        Image(systemName: "person.3.fill")
+                            .foregroundColor(.purple)
+                            .font(.title2)
+
                         Text("Favorite Groups")
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                            .font(.title2)
+                            .fontWeight(.bold)
 
                         Spacer()
 
