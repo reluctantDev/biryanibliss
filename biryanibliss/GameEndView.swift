@@ -5,6 +5,8 @@ struct GameEndView: View {
     @Binding var isPresented: Bool
     @Environment(\.dismiss) private var dismiss
 
+    var onNewGame: (() -> Void)?
+
     @State private var finalCredits: [UUID: String] = [:]
     @State private var showingLeaderboard = false
 
@@ -152,7 +154,7 @@ struct GameEndView: View {
             }
         }
         .fullScreenCover(isPresented: $showingLeaderboard) {
-            LeaderboardView(gameManager: gameManager, isPresented: $isPresented)
+            LeaderboardView(gameManager: gameManager, isPresented: $isPresented, onNewGame: onNewGame)
         }
     }
 }

@@ -4,6 +4,8 @@ struct LeaderboardView: View {
     @ObservedObject var gameManager: GameManager
     @Binding var isPresented: Bool
     @Environment(\.dismiss) private var dismiss
+
+    var onNewGame: (() -> Void)?
     
     var sortedPlayers: [Player] {
         gameManager.players.sorted { $0.totalCredits > $1.totalCredits }
@@ -141,8 +143,10 @@ struct LeaderboardView: View {
                             Button(action: {
                                 // Reset everything and start fresh
                                 gameManager.resetGame()
-                                dismiss()
                                 isPresented = false
+                                dismiss()
+                                // Call the callback to dismiss all views
+                                onNewGame?()
                             }) {
                                 HStack {
                                     Image(systemName: "plus.circle.fill")

@@ -138,21 +138,206 @@ struct GameLogicTests {
     
     @Test func testEdgeCases() async throws {
         let gameManager = GameManager()
-        
+
         // Test with zero credits
         gameManager.creditsPerBuyIn = 0.0
         gameManager.addPlayer(name: "Zero Player")
         #expect(gameManager.players[0].totalCredits == 0.0)
-        
+
         // Test with very large numbers
         gameManager.creditsPerBuyIn = 999999.0
         gameManager.addPlayer(name: "Rich Player")
         #expect(gameManager.players[1].totalCredits == 999999.0)
-        
+
         // Test removing all players
         gameManager.removePlayer(at: 1)
         gameManager.removePlayer(at: 0)
         #expect(gameManager.players.isEmpty)
         #expect(gameManager.getTotalPotInCredits() == 0.0)
+    }
+
+    @Test func testNewGameResetFlow() async throws {
+        let gameManager = GameManager()
+
+        // Simulate a complete game flow
+        gameManager.numberOfPlayers = 3
+        gameManager.creditsPerBuyIn = 300.0
+        gameManager.updateTotalPotCredits()
+        gameManager.generateDefaultPlayers()
+
+        // Modify game state (simulate gameplay)
+        gameManager.updatePlayerCredits(playerId: gameManager.players[0].id, newCredits: 500.0)
+        gameManager.updatePlayerCredits(playerId: gameManager.players[1].id, newCredits: 400.0)
+        gameManager.updatePlayerCredits(playerId: gameManager.players[2].id, newCredits: 500.0)
+        gameManager.updatePlayerScore(playerId: gameManager.players[0].id, newScore: 5)
+
+        // Verify modified state
+        #expect(gameManager.players.count == 3)
+        #expect(gameManager.numberOfPlayers == 3)
+        #expect(gameManager.creditsPerBuyIn == 300.0)
+        #expect(gameManager.totalPotCredits == 900.0)
+        #expect(gameManager.players[0].totalCredits == 500.0)
+        #expect(gameManager.players[0].score == 5)
+
+        // Simulate "New Game" button click
+        gameManager.resetGame()
+
+        // Verify complete reset to defaults
+        #expect(gameManager.players.isEmpty)
+        #expect(gameManager.numberOfPlayers == 5)
+        #expect(gameManager.creditsPerBuyIn == 200.0)
+        #expect(gameManager.totalPotCredits == 1000.0)
+        #expect(gameManager.getTotalPotInCredits() == 0.0)
+    }
+
+    @Test func testFavoriteGroupsInitialization() async throws {
+        let gameManager = GameManager()
+
+        // Verify default favorite groups are loaded
+        #expect(gameManager.favoriteGroups.count == 2)
+        #expect(gameManager.favoriteGroups[0].name == "Weekend Warriors")
+        #expect(gameManager.favoriteGroups[0].playerNames.count == 4)
+        #expect(gameManager.favoriteGroups[1].name == "Poker Pros")
+        #expect(gameManager.favoriteGroups[1].playerNames.count == 6)
+    }
+
+    @Test func testLoadPlayersFromGroup() async throws {
+        let gameManager = GameManager()
+        let testGroup = PlayerGroup(name: "Test Group", playerNames: ["Alice", "Bob", "Charlie"])
+
+        // Load players from group
+        gameManager.loadPlayersFromGroup(testGroup)
+
+        // Verify players are loaded correctly
+        #expect(gameManager.players.count == 3)
+        #expect(gameManager.numberOfPlayers == 3)
+        #expect(gameManager.players[0].name == "Alice")
+        #expect(gameManager.players[1].name == "Bob")
+        #expect(gameManager.players[2].name == "Charlie")
+
+        // Verify each player has correct initial credits
+        for player in gameManager.players {
+            #expect(player.buyIns == 1)
+            #expect(player.totalCredits == gameManager.creditsPerBuyIn)
+            #expect(player.score == 0)
+        }
+    }
+
+    @Test func testAddAndRemoveFavoriteGroups() async throws {
+        let gameManager = GameManager()
+        let initialCount = gameManager.favoriteGroups.count
+
+        // Add new group
+        let newGroup = PlayerGroup(name: "New Group", playerNames: ["Player1", "Player2"])
+        gameManager.addFavoriteGroup(newGroup)
+
+        #expect(gameManager.favoriteGroups.count == initialCount + 1)
+        #expect(gameManager.favoriteGroups.last?.name == "New Group")
+
+        // Remove group
+        gameManager.removeFavoriteGroup(at: gameManager.favoriteGroups.count - 1)
+        #expect(gameManager.favoriteGroups.count == initialCount)
+    }
+
+    @Test func testSaveCurrentPlayersAsGroup() async throws {
+        let gameManager = GameManager()
+
+        // Add some players
+        gameManager.addPlayer(name: "Test Player 1")
+        gameManager.addPlayer(name: "Test Player 2")
+        gameManager.addPlayer(name: "Test Player 3")
+
+        let initialGroupCount = gameManager.favoriteGroups.count
+
+        // Save current players as group
+        gameManager.saveCurrentPlayersAsGroup(name: "Current Game Group")
+
+        // Verify group was saved
+        #expect(gameManager.favoriteGroups.count == initialGroupCount + 1)
+        let savedGroup = gameManager.favoriteGroups.last!
+        #expect(savedGroup.name == "Current Game Group")
+        #expect(savedGroup.playerNames.count == 3)
+        #expect(savedGroup.playerNames.contains("Test Player 1"))
+        #expect(savedGroup.playerNames.contains("Test Player 2"))
+        #expect(savedGroup.playerNames.contains("Test Player 3"))
+    }
+
+    @Test func testUpdateFavoriteGroup() async throws {
+        let gameManager = GameManager()
+        let originalGroup = gameManager.favoriteGroups[0] // Weekend Warriors
+
+        // Create updated group
+        let updatedGroup = PlayerGroup(name: "Updated Weekend Crew", playerNames: ["NewPlayer1", "NewPlayer2", "NewPlayer3", "NewPlayer4"])
+
+        // Update the group
+        gameManager.updateFavoriteGroup(at: 0, with: updatedGroup)
+
+        // Verify the group was updated
+        #expect(gameManager.favoriteGroups[0].name == "Updated Weekend Crew")
+        #expect(gameManager.favoriteGroups[0].playerNames.count == 4)
+        #expect(gameManager.favoriteGroups[0].playerNames.contains("NewPlayer1"))
+        #expect(gameManager.favoriteGroups[0].playerNames.contains("NewPlayer4"))
+
+        // Verify other groups weren't affected
+        #expect(gameManager.favoriteGroups[1].name == "Poker Pros")
+    }
+
+    @Test func testDeleteDefaultFavoriteGroups() async throws {
+        let gameManager = GameManager()
+        let initialCount = gameManager.favoriteGroups.count
+
+        // Delete first default group (Weekend Warriors)
+        gameManager.removeFavoriteGroup(at: 0)
+
+        // Verify group was removed
+        #expect(gameManager.favoriteGroups.count == initialCount - 1)
+        #expect(gameManager.favoriteGroups[0].name == "Poker Pros") // Should be first now
+
+        // Delete another group
+        gameManager.removeFavoriteGroup(at: 0)
+
+        // Verify second group was removed
+        #expect(gameManager.favoriteGroups.count == initialCount - 2)
+        #expect(gameManager.favoriteGroups.isEmpty) // Should be empty now
+    }
+
+    @Test func testGroupSelectionAndGameStart() async throws {
+        let gameManager = GameManager()
+
+        // Initially no players should be loaded
+        #expect(gameManager.players.isEmpty)
+
+        // Select and load the first group (Weekend Warriors)
+        let selectedGroup = gameManager.favoriteGroups[0]
+        gameManager.loadPlayersFromGroup(selectedGroup)
+
+        // Verify players are loaded from the selected group
+        #expect(gameManager.players.count == 4)
+        #expect(gameManager.numberOfPlayers == 4)
+        #expect(gameManager.players[0].name == "Morgan")
+        #expect(gameManager.players[1].name == "Riley")
+        #expect(gameManager.players[2].name == "Avery")
+        #expect(gameManager.players[3].name == "Quinn")
+
+        // Verify each player has correct initial setup
+        for player in gameManager.players {
+            #expect(player.buyIns == 1)
+            #expect(player.totalCredits == gameManager.creditsPerBuyIn)
+            #expect(player.score == 0)
+        }
+
+        // Test selecting a different group
+        let secondGroup = gameManager.favoriteGroups[1] // Poker Pros
+        gameManager.loadPlayersFromGroup(secondGroup)
+
+        // Verify new group is loaded
+        #expect(gameManager.players.count == 6)
+        #expect(gameManager.numberOfPlayers == 6)
+        #expect(gameManager.players[0].name == "Blake")
+        #expect(gameManager.players[1].name == "Cameron")
+        #expect(gameManager.players[2].name == "Drew")
+        #expect(gameManager.players[3].name == "Emery")
+        #expect(gameManager.players[4].name == "Finley")
+        #expect(gameManager.players[5].name == "Harper")
     }
 }

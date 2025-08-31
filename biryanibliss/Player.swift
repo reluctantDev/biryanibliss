@@ -15,13 +15,47 @@ struct Player: Identifiable, Codable {
     }
 }
 
+struct PlayerGroup: Identifiable, Codable {
+    let id = UUID()
+    var name: String
+    var playerNames: [String]
+    var dateCreated: Date
 
+    init(name: String, playerNames: [String]) {
+        self.name = name
+        self.playerNames = playerNames
+        self.dateCreated = Date()
+    }
+}
+
+struct GameSession: Identifiable, Codable {
+    let id = UUID()
+    var name: String
+    var dateCreated: Date
+    var players: [Player]
+    var totalPotCredits: Double
+    var creditsPerBuyIn: Double
+    var isCompleted: Bool = false
+    var completedDate: Date?
+
+    init(name: String, players: [Player], totalPotCredits: Double, creditsPerBuyIn: Double) {
+        self.name = name
+        self.dateCreated = Date()
+        self.players = players
+        self.totalPotCredits = totalPotCredits
+        self.creditsPerBuyIn = creditsPerBuyIn
+    }
+}
 
 class GameManager: ObservableObject {
     @Published var players: [Player] = []
     @Published var totalPotCredits: Double = 1000.0
     @Published var numberOfPlayers: Int = 5
     @Published var creditsPerBuyIn: Double = 200.0
+    @Published var favoriteGroups: [PlayerGroup] = []
+    @Published var gameSessions: [GameSession] = []
+
+    private var lastLoadedGroupName: String?
 
     var creditsPerPlayer: Double {
         return numberOfPlayers > 0 ? totalPotCredits / Double(numberOfPlayers) : 0.0
@@ -29,6 +63,7 @@ class GameManager: ObservableObject {
 
     init() {
         updateTotalPotCredits()
+        loadDefaultFavoriteGroups()
     }
 
     func updateCreditsPerBuyIn() {
@@ -96,6 +131,7 @@ class GameManager: ObservableObject {
         players.removeAll()
         numberOfPlayers = 5
         creditsPerBuyIn = 200.0
+        lastLoadedGroupName = nil
         updateTotalPotCredits()
     }
 
@@ -114,6 +150,120 @@ class GameManager: ObservableObject {
         creditsPerBuyIn = currentBuyIn
         numberOfPlayers = currentPlayerCount
         updateTotalPotCredits()
+    }
+
+    // MARK: - Favorite Groups Management
+
+    func loadDefaultFavoriteGroups() {
+        if favoriteGroups.isEmpty {
+            favoriteGroups = [
+                PlayerGroup(name: "Weekend Warriors", playerNames: ["Morgan", "Riley", "Avery", "Quinn"]),
+                PlayerGroup(name: "Poker Pros", playerNames: ["Blake", "Cameron", "Drew", "Emery", "Finley", "Harper"])
+            ]
+        }
+    }
+
+    func addFavoriteGroup(_ group: PlayerGroup) {
+        favoriteGroups.append(group)
+    }
+
+    func removeFavoriteGroup(at index: Int) {
+        if index < favoriteGroups.count {
+            favoriteGroups.remove(at: index)
+        }
+    }
+
+    func updateFavoriteGroup(at index: Int, with updatedGroup: PlayerGroup) {
+        if index < favoriteGroups.count {
+            favoriteGroups[index] = updatedGroup
+        }
+    }
+
+    func loadPlayersFromGroup(_ group: PlayerGroup) {
+        // Prevent loading the same group multiple times
+        if lastLoadedGroupName == group.name && !players.isEmpty {
+            return
+        }
+
+        players.removeAll()
+        numberOfPlayers = group.playerNames.count
+        lastLoadedGroupName = group.name
+
+        for playerName in group.playerNames {
+            let player = Player(name: playerName, buyIns: 1, totalCredits: creditsPerBuyIn, score: 0)
+            players.append(player)
+        }
+
+        updateTotalPotCredits()
+    }
+
+    func saveCurrentPlayersAsGroup(name: String) {
+        let playerNames = players.map { $0.name }
+        let newGroup = PlayerGroup(name: name, playerNames: playerNames)
+        addFavoriteGroup(newGroup)
+    }
+
+    // MARK: - Game Session Management
+
+    func createGameSession() -> GameSession {
+        let sessionNumber = gameSessions.count + 1
+        let sessionName = "Game \(sessionNumber)"
+
+        // Create a copy of current players for the session
+        let sessionPlayers = players.map { player in
+            Player(name: player.name, buyIns: player.buyIns, totalCredits: player.totalCredits, score: player.score)
+        }
+
+        let session = GameSession(
+            name: sessionName,
+            players: sessionPlayers,
+            totalPotCredits: totalPotCredits,
+            creditsPerBuyIn: creditsPerBuyIn
+        )
+
+        gameSessions.append(session)
+        return session
+    }
+
+    func updateGameSession(_ session: GameSession) {
+        if let index = gameSessions.firstIndex(where: { $0.id == session.id }) {
+            gameSessions[index] = session
+        }
+    }
+
+    func completeGameSession(_ sessionId: UUID) {
+        if let index = gameSessions.firstIndex(where: { $0.id == sessionId }) {
+            gameSessions[index].isCompleted = true
+            gameSessions[index].completedDate = Date()
+        }
+    }
+
+    func deleteGameSession(at index: Int) {
+        if index < gameSessions.count {
+            gameSessions.remove(at: index)
+        }
+    }
+
+    func loadPlayersFromSession(_ session: GameSession) {
+        players = session.players.map { player in
+            Player(name: player.name, buyIns: player.buyIns, totalCredits: player.totalCredits, score: player.score)
+        }
+        numberOfPlayers = players.count
+        totalPotCredits = session.totalPotCredits
+        creditsPerBuyIn = session.creditsPerBuyIn
+        updateTotalPotCredits()
+    }
+
+    func hasActiveSessionWithPlayers(_ playerNames: [String]) -> Bool {
+        return gameSessions.contains { session in
+            !session.isCompleted && Set(session.players.map { $0.name }) == Set(playerNames)
+        }
+    }
+
+    func getActiveSessionWithPlayers(_ playerNames: [String]) -> GameSession? {
+        return gameSessions.first { session in
+            !session.isCompleted && Set(session.players.map { $0.name }) == Set(playerNames)
+        }
     }
 }
 

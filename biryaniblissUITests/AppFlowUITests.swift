@@ -25,7 +25,7 @@ final class AppFlowUITests: XCTestCase {
     func testAppLaunch() throws {
         // Test that the app launches successfully
         XCTAssertTrue(app.staticTexts["Game Configuration"].exists)
-        XCTAssertTrue(app.staticTexts["Buy-in Credits:"].exists)
+        XCTAssertTrue(app.staticTexts["Buy-in Chips:"].exists)
         XCTAssertTrue(app.staticTexts["Number of Players:"].exists)
     }
     
@@ -55,7 +55,7 @@ final class AppFlowUITests: XCTestCase {
         startGameButton.tap()
         
         // Should navigate to game play view
-        XCTAssertTrue(app.staticTexts["Credit Manager"].exists)
+        XCTAssertTrue(app.staticTexts["Chip Ledger"].exists)
     }
     
     @MainActor
@@ -64,7 +64,7 @@ final class AppFlowUITests: XCTestCase {
         app.buttons["Start Game"].tap()
         
         // Verify we're in the game play view
-        XCTAssertTrue(app.staticTexts["Credit Manager"].exists)
+        XCTAssertTrue(app.staticTexts["Chip Ledger"].exists)
         
         // Test that player cards are displayed
         XCTAssertTrue(app.staticTexts["Player 1"].exists)
@@ -102,7 +102,7 @@ final class AppFlowUITests: XCTestCase {
         
         // 2. Go to game play
         app.buttons["Start Game"].tap()
-        XCTAssertTrue(app.staticTexts["Credit Manager"].exists)
+        XCTAssertTrue(app.staticTexts["Chip Ledger"].exists)
         
         // 3. Go to end game
         let endGameButton = app.buttons["End Game"]
@@ -114,7 +114,7 @@ final class AppFlowUITests: XCTestCase {
             let cancelButton = app.buttons["Cancel"]
             if cancelButton.exists {
                 cancelButton.tap()
-                XCTAssertTrue(app.staticTexts["Credit Manager"].exists)
+                XCTAssertTrue(app.staticTexts["Chip Ledger"].exists)
             }
         }
         
@@ -134,7 +134,7 @@ final class AppFlowUITests: XCTestCase {
         
         // Start game and test game play accessibility
         app.buttons["Start Game"].tap()
-        XCTAssertTrue(app.staticTexts["Credit Manager"].isHittable)
+        XCTAssertTrue(app.staticTexts["Chip Ledger"].isHittable)
         
         let endGameButton = app.buttons["End Game"]
         if endGameButton.exists {
@@ -151,7 +151,7 @@ final class AppFlowUITests: XCTestCase {
         
         // 2. Start game
         app.buttons["Start Game"].tap()
-        XCTAssertTrue(app.staticTexts["Credit Manager"].exists)
+        XCTAssertTrue(app.staticTexts["Chip Ledger"].exists)
         
         // 3. End game
         let endGameButton = app.buttons["End Game"]

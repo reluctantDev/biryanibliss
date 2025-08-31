@@ -1,7 +1,7 @@
 # ChipTally Test Plan
 
 ## Overview
-This document outlines the comprehensive testing strategy for the ChipTally credit management app to ensure quality and reliability for App Store submission.
+This document outlines the comprehensive testing strategy for the ChipTally chip ledger app to ensure quality and reliability for App Store submission.
 
 ## Test Coverage
 
