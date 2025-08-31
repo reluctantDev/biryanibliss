@@ -6,6 +6,7 @@ struct GamePlayView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingGameEnd = false
     @State private var showingRestartAlert = false
+    @State private var showingAddPlayer = false
     
     var body: some View {
         NavigationView {
@@ -171,6 +172,25 @@ struct GamePlayView: View {
                     }
 
                     Button(action: {
+                        showingAddPlayer = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "person.badge.plus.fill")
+                                .font(.subheadline)
+
+                            Text("Add Player")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.green)
+                        .cornerRadius(16)
+                    }
+
+                    Button(action: {
                         dismiss()
                     }) {
                         Text("Back to Setup")
@@ -190,16 +210,7 @@ struct GamePlayView: View {
             } // Close else block
         }
         .sheet(isPresented: $showingGameEnd) {
-            GameEndView(gameManager: gameManager, isPresented: $showingGameEnd, onNewGame: {
-                // Update session with final player data and mark as completed
-                if let session = gameSession {
-                    var updatedSession = session
-                    updatedSession.players = gameManager.players
-                    updatedSession.isCompleted = true
-                    updatedSession.completedDate = Date()
-                    gameManager.updateGameSession(updatedSession)
-                }
-
+            GameEndView(gameManager: gameManager, isPresented: $showingGameEnd, gameSession: gameSession, onNewGame: {
                 // Dismiss GamePlayView to go back to ContentView
                 dismiss()
             })
@@ -219,6 +230,12 @@ struct GamePlayView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("This will reset the entire game and return to setup. Are you sure?")
+        }
+        .sheet(isPresented: $showingAddPlayer) {
+            AddPlayerView(
+                gameManager: gameManager,
+                isPresented: $showingAddPlayer
+            )
         }
     }
 }

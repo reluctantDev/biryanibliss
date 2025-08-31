@@ -31,21 +31,21 @@ Header
 ## ✨ Enhanced Game Sessions
 
 ### **Scrollable Session Management**
-- **Fixed display**: Shows last 3 games always visible
-- **Scrollable area**: Additional games (4-10) in scrollable section
+- **Fixed display**: Shows last 2 games always visible
+- **Scrollable area**: Additional games (3-10) in scrollable section
 - **Maximum limit**: Only shows last 10 games total
 - **Smart organization**: Most recent games prioritized
 
 ### **Session Display Logic**
 ```swift
 let recentSessions = Array(gameManager.gameSessions.suffix(10).reversed())
-let visibleSessions = Array(recentSessions.prefix(3))
-let hasMoreSessions = recentSessions.count > 3
+let visibleSessions = Array(recentSessions.prefix(2))
+let hasMoreSessions = recentSessions.count > 2
 ```
 
 ### **Visual Structure**
-- **Always visible**: Last 3 sessions (no scrolling needed)
-- **Scrollable area**: Sessions 4-10 with fixed height (200px)
+- **Always visible**: Last 2 sessions (no scrolling needed)
+- **Scrollable area**: Sessions 3-10 with fixed height (200px)
 - **Chronological order**: Newest sessions at top
 
 ## 🔧 Technical Implementation
@@ -53,14 +53,14 @@ let hasMoreSessions = recentSessions.count > 3
 ### **Scrollable Sessions Container**
 ```swift
 VStack(spacing: 0) {
-    // Always visible: Last 3 sessions
+    // Always visible: Last 2 sessions
     ForEach(Array(visibleSessions.enumerated()), id: \.element.id) { ... }
-    
-    // Scrollable area for additional sessions (4-10)
+
+    // Scrollable area for additional sessions (3-10)
     if hasMoreSessions {
         ScrollView {
             LazyVStack(spacing: 12) {
-                ForEach(Array(recentSessions.dropFirst(3).enumerated()), id: \.element.id) { ... }
+                ForEach(Array(recentSessions.dropFirst(2).enumerated()), id: \.element.id) { ... }
             }
         }
         .frame(maxHeight: 200) // Fixed height for scrollable area
@@ -70,8 +70,8 @@ VStack(spacing: 0) {
 
 ### **Session Limits**
 - **Display limit**: Maximum 10 sessions shown
-- **Visible limit**: 3 sessions always visible
-- **Scroll limit**: 7 additional sessions in scroll area
+- **Visible limit**: 2 sessions always visible
+- **Scroll limit**: 8 additional sessions in scroll area
 - **Performance**: Efficient rendering with LazyVStack
 
 ## 🎨 Visual Design Updates
@@ -120,8 +120,8 @@ All sections now have consistent styling:
 
 ### **Smart Display Logic**
 - **0 sessions**: Empty state with helpful message
-- **1-3 sessions**: All sessions visible, no scrolling
-- **4-10 sessions**: 3 visible + scrollable area for rest
+- **1-2 sessions**: All sessions visible, no scrolling
+- **3-10 sessions**: 2 visible + scrollable area for rest
 - **10+ sessions**: Shows only last 10, oldest automatically hidden
 
 ### **Performance Optimization**

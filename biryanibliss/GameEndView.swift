@@ -3,6 +3,7 @@ import SwiftUI
 struct GameEndView: View {
     @ObservedObject var gameManager: GameManager
     @Binding var isPresented: Bool
+    let gameSession: GameSession?
     @Environment(\.dismiss) private var dismiss
 
     var onNewGame: (() -> Void)?
@@ -23,6 +24,29 @@ struct GameEndView: View {
             return false
         }
         return allEntered && abs(totalFinalCredits - gameManager.totalPotCredits) < 0.01
+    }
+
+    private func saveGameSession() {
+        guard let session = gameSession else { return }
+
+        // Update player credits with final values
+        var updatedPlayers = gameManager.players
+        for i in 0..<updatedPlayers.count {
+            let player = updatedPlayers[i]
+            if let finalCreditString = finalCredits[player.id],
+               let finalCreditValue = Double(finalCreditString) {
+                updatedPlayers[i].totalCredits = finalCreditValue
+            }
+        }
+
+        // Update session with final data
+        var updatedSession = session
+        updatedSession.players = updatedPlayers
+        updatedSession.isCompleted = true
+        updatedSession.completedDate = Date()
+
+        // Save to game manager
+        gameManager.updateGameSession(updatedSession)
     }
     
     var body: some View {
@@ -109,6 +133,10 @@ struct GameEndView: View {
                                 gameManager.updatePlayerCredits(playerId: player.id, newCredits: finalCredit)
                             }
                         }
+
+                        // Save the game session with final data
+                        saveGameSession()
+
                         // Show leaderboard
                         showingLeaderboard = true
                     }) {
@@ -147,10 +175,15 @@ struct GameEndView: View {
             .navigationBarHidden(true)
         }
         .onAppear {
-            // Initialize final credits with initial buy-in values (not current credits)
+            // Initialize final credits with current player credits
             for player in gameManager.players {
-                let initialCredits = gameManager.creditsPerBuyIn * Double(player.buyIns)
-                finalCredits[player.id] = String(Int(initialCredits))
+                finalCredits[player.id] = String(Int(player.totalCredits))
+            }
+        }
+        .onDisappear {
+            // Save session when view disappears (fallback)
+            if isFinishEnabled {
+                saveGameSession()
             }
         }
         .fullScreenCover(isPresented: $showingLeaderboard) {
@@ -227,7 +260,8 @@ struct GameEndView_Previews: PreviewProvider {
     static var previews: some View {
         GameEndView(
             gameManager: GameManager(),
-            isPresented: .constant(true)
+            isPresented: .constant(true),
+            gameSession: nil
         )
     }
 }

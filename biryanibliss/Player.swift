@@ -90,6 +90,8 @@ class GameManager: ObservableObject {
     func addPlayer(name: String) {
         let newPlayer = Player(name: name, buyIns: 1, totalCredits: creditsPerBuyIn, score: 0)
         players.append(newPlayer)
+        numberOfPlayers = players.count
+        updateTotalPotCredits()
     }
     
     func removePlayer(at index: Int) {
@@ -264,6 +266,19 @@ class GameManager: ObservableObject {
         return gameSessions.first { session in
             !session.isCompleted && Set(session.players.map { $0.name }) == Set(playerNames)
         }
+    }
+
+    func addPlayerToGame(name: String) {
+        let newPlayer = Player(
+            name: name,
+            buyIns: 1,
+            totalCredits: creditsPerBuyIn,
+            score: 0
+        )
+
+        players.append(newPlayer)
+        numberOfPlayers = players.count
+        updateTotalPotCredits()
     }
 }
 

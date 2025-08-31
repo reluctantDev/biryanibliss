@@ -43,12 +43,12 @@ struct AddPlayerView: View {
                             addPlayer()
                         }
                     
-                    // Available Slots Info
+                    // Game Info
                     HStack {
                         Image(systemName: "info.circle.fill")
                             .foregroundColor(.blue)
-                        
-                        Text("\(gameManager.numberOfPlayers - gameManager.players.count) slot(s) remaining")
+
+                        Text("Buy-in: $\(Int(gameManager.creditsPerBuyIn)) • Current players: \(gameManager.players.count)")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -179,12 +179,7 @@ struct AddPlayerView: View {
             return
         }
         
-        // Check if we have room for more players
-        if gameManager.players.count >= gameManager.numberOfPlayers {
-            alertMessage = "Maximum number of players reached"
-            showingAlert = true
-            return
-        }
+        // Allow adding players during game (no strict limit check for mid-game additions)
         
         // Add the player
         gameManager.addPlayer(name: trimmedName)

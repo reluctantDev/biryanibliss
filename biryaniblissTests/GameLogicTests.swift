@@ -340,4 +340,62 @@ struct GameLogicTests {
         #expect(gameManager.players[4].name == "Finley")
         #expect(gameManager.players[5].name == "Harper")
     }
+
+    @Test func testAddPlayerDuringGame() async throws {
+        let gameManager = GameManager()
+
+        // Start with default players
+        gameManager.generateDefaultPlayers()
+        let initialPlayerCount = gameManager.players.count
+        let initialTotalCredits = gameManager.totalPotCredits
+
+        // Add a new player during the game
+        gameManager.addPlayerToGame(name: "New Player")
+
+        // Verify player was added
+        #expect(gameManager.players.count == initialPlayerCount + 1)
+        #expect(gameManager.numberOfPlayers == initialPlayerCount + 1)
+        #expect(gameManager.players.last?.name == "New Player")
+
+        // Verify new player has correct initial setup
+        let newPlayer = gameManager.players.last!
+        #expect(newPlayer.buyIns == 1)
+        #expect(newPlayer.totalCredits == gameManager.creditsPerBuyIn)
+        #expect(newPlayer.score == 0)
+
+        // Verify total pot credits increased
+        #expect(gameManager.totalPotCredits == initialTotalCredits + gameManager.creditsPerBuyIn)
+
+        // Test adding multiple players
+        gameManager.addPlayerToGame(name: "Another Player")
+        #expect(gameManager.players.count == initialPlayerCount + 2)
+        #expect(gameManager.totalPotCredits == initialTotalCredits + (2 * gameManager.creditsPerBuyIn))
+    }
+
+    @Test func testGameSessionSavesPlayerState() async throws {
+        let gameManager = GameManager()
+
+        // Create a session
+        gameManager.generateDefaultPlayers()
+        let session = gameManager.createGameSession()
+
+        // Modify player credits during gameplay
+        gameManager.updatePlayerCredits(playerId: gameManager.players[0].id, newCredits: 300)
+        gameManager.updatePlayerCredits(playerId: gameManager.players[1].id, newCredits: 150)
+
+        // Update session with modified player data
+        var updatedSession = session
+        updatedSession.players = gameManager.players
+        updatedSession.isCompleted = true
+        updatedSession.completedDate = Date()
+        gameManager.updateGameSession(updatedSession)
+
+        // Verify session was updated with correct player data
+        let savedSession = gameManager.gameSessions.first { $0.id == session.id }
+        #expect(savedSession != nil)
+        #expect(savedSession!.isCompleted == true)
+        #expect(savedSession!.players[0].totalCredits == 300)
+        #expect(savedSession!.players[1].totalCredits == 150)
+        #expect(savedSession!.completedDate != nil)
+    }
 }

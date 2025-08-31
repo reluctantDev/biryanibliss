@@ -27,6 +27,7 @@ struct ContentView: View {
     @State private var selectedGameSession: GameSession?
     @State private var showingDuplicateSessionAlert = false
     @State private var existingActiveSession: GameSession?
+    @State private var showingGameResults = false
     
     var body: some View {
         NavigationView {
@@ -81,21 +82,25 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 20)
                     } else {
-                        // Scrollable sessions with fixed height showing last 3 games, max 10 total
+                        // Scrollable sessions: 2 games visible, rest scrollable (max 10 total)
                         let recentSessions = Array(gameManager.gameSessions.suffix(10).reversed())
-                        let visibleSessions = Array(recentSessions.prefix(3))
-                        let hasMoreSessions = recentSessions.count > 3
+                        let visibleSessions = Array(recentSessions.prefix(2))
+                        let hasMoreSessions = recentSessions.count > 2
 
                         VStack(spacing: 0) {
-                            // Always visible: Last 3 sessions
+                            // Always visible: Last 2 sessions
                             ForEach(Array(visibleSessions.enumerated()), id: \.element.id) { index, session in
                                 let originalIndex = gameManager.gameSessions.firstIndex(where: { $0.id == session.id }) ?? 0
                                 GameSessionCard(
                                     session: session,
                                     onTap: {
                                         selectedGameSession = session
-                                        gameManager.loadPlayersFromSession(session)
-                                        showingGame = true
+                                        if session.isCompleted {
+                                            showingGameResults = true
+                                        } else {
+                                            gameManager.loadPlayersFromSession(session)
+                                            showingGame = true
+                                        }
                                     },
                                     onDelete: {
                                         gameManager.deleteGameSession(at: originalIndex)
@@ -104,18 +109,30 @@ struct ContentView: View {
                                 .padding(.bottom, index < visibleSessions.count - 1 ? 12 : 0)
                             }
 
-                            // Scrollable area for additional sessions (4-10)
+                            // Scrollable area for additional sessions (3-10)
                             if hasMoreSessions {
+                                Divider()
+                                    .padding(.vertical, 8)
+
+                                Text("Older Sessions")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .padding(.bottom, 4)
+
                                 ScrollView {
                                     LazyVStack(spacing: 12) {
-                                        ForEach(Array(recentSessions.dropFirst(3).enumerated()), id: \.element.id) { index, session in
+                                        ForEach(Array(recentSessions.dropFirst(2).enumerated()), id: \.element.id) { index, session in
                                             let originalIndex = gameManager.gameSessions.firstIndex(where: { $0.id == session.id }) ?? 0
                                             GameSessionCard(
                                                 session: session,
                                                 onTap: {
                                                     selectedGameSession = session
-                                                    gameManager.loadPlayersFromSession(session)
-                                                    showingGame = true
+                                                    if session.isCompleted {
+                                                        showingGameResults = true
+                                                    } else {
+                                                        gameManager.loadPlayersFromSession(session)
+                                                        showingGame = true
+                                                    }
                                                 },
                                                 onDelete: {
                                                     gameManager.deleteGameSession(at: originalIndex)
@@ -125,7 +142,7 @@ struct ContentView: View {
                                     }
                                     .padding(.top, 12)
                                 }
-                                .frame(maxHeight: 200) // Fixed height for scrollable area
+                                .frame(maxHeight: 150) // Fixed height for scrollable area
                             }
                         }
                     }
@@ -412,6 +429,11 @@ struct ContentView: View {
         }
         .fullScreenCover(isPresented: $showingGame) {
             GamePlayView(gameManager: gameManager, gameSession: selectedGameSession)
+        }
+        .sheet(isPresented: $showingGameResults) {
+            if let session = selectedGameSession {
+                GameResultsView(session: session)
+            }
         }
         .sheet(isPresented: $showingAddGroup) {
             AddFavoriteGroupView(gameManager: gameManager, isPresented: $showingAddGroup)
@@ -935,6 +957,270 @@ struct GameSessionCard: View {
                 Label("Delete Session", systemImage: "trash")
             }
             .foregroundColor(.red)
+        }
+    }
+}
+
+struct GameResultsView: View {
+    let session: GameSession
+    @Environment(\.dismiss) private var dismiss
+
+    private var sortedPlayers: [Player] {
+        session.players.sorted { $0.totalCredits > $1.totalCredits }
+    }
+
+    private var winner: Player? {
+        sortedPlayers.first
+    }
+
+    private var totalCreditsInPlay: Double {
+        session.players.reduce(0) { $0 + $1.totalCredits }
+    }
+
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .short
+        return formatter.string(from: session.dateCreated)
+    }
+
+    private var formattedCompletedDate: String {
+        guard let completedDate = session.completedDate else { return "Unknown" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: completedDate)
+    }
+
+    private var gameDuration: String {
+        guard let completedDate = session.completedDate else { return "Unknown" }
+        let duration = completedDate.timeIntervalSince(session.dateCreated)
+        let hours = Int(duration) / 3600
+        let minutes = Int(duration) % 3600 / 60
+
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header
+                    VStack(spacing: 16) {
+                        Image(systemName: "trophy.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.yellow)
+
+                        Text(session.name)
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+
+                        Text("Game Results")
+                            .font(.title2)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top)
+
+                    // Winner Section
+                    if let winner = winner {
+                        VStack(spacing: 12) {
+                            Text("🏆 Biggest Winner")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.yellow)
+
+                            VStack(spacing: 8) {
+                                Circle()
+                                    .fill(Color.yellow.opacity(0.2))
+                                    .frame(width: 80, height: 80)
+                                    .overlay(
+                                        Text(String(winner.name.prefix(1)).uppercased())
+                                            .font(.largeTitle)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.yellow)
+                                    )
+
+                                Text(winner.name)
+                                    .font(.title)
+                                    .fontWeight(.bold)
+
+                                Text("$\(Int(winner.totalCredits))")
+                                    .font(.title2)
+                                    .foregroundColor(.yellow)
+                                    .fontWeight(.semibold)
+
+                                let profit = winner.totalCredits - (Double(winner.buyIns) * session.creditsPerBuyIn)
+                                Text(profit >= 0 ? "+$\(Int(profit))" : "-$\(Int(abs(profit)))")
+                                    .font(.subheadline)
+                                    .foregroundColor(profit >= 0 ? .green : .red)
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        .padding()
+                        .background(Color.yellow.opacity(0.1))
+                        .cornerRadius(16)
+                    }
+
+                    // Final Standings
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Final Credit Standings")
+                            .font(.title2)
+                            .fontWeight(.bold)
+
+                        VStack(spacing: 12) {
+                            ForEach(Array(sortedPlayers.enumerated()), id: \.element.id) { index, player in
+                                PlayerResultCard(player: player, position: index + 1, session: session)
+                            }
+                        }
+                    }
+
+                    // Game Statistics
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Game Statistics")
+                            .font(.title2)
+                            .fontWeight(.bold)
+
+                        VStack(spacing: 12) {
+                            StatRow(label: "Started", value: formattedDate)
+                            StatRow(label: "Completed", value: formattedCompletedDate)
+                            StatRow(label: "Duration", value: gameDuration)
+                            StatRow(label: "Players", value: "\(session.players.count)")
+                            StatRow(label: "Buy-in", value: "$\(Int(session.creditsPerBuyIn))")
+                            StatRow(label: "Initial Pot", value: "$\(Int(session.totalPotCredits))")
+                            StatRow(label: "Final Credits", value: "$\(Int(totalCreditsInPlay))")
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+
+                    Spacer()
+                }
+                .padding()
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct PlayerResultCard: View {
+    let player: Player
+    let position: Int
+    let session: GameSession
+
+    private var positionColor: Color {
+        switch position {
+        case 1: return .yellow
+        case 2: return .gray
+        case 3: return .orange
+        default: return .blue
+        }
+    }
+
+    private var positionIcon: String {
+        switch position {
+        case 1: return "1.circle.fill"
+        case 2: return "2.circle.fill"
+        case 3: return "3.circle.fill"
+        default: return "\(position).circle"
+        }
+    }
+
+    private var profitLoss: Double {
+        let invested = Double(player.buyIns) * session.creditsPerBuyIn
+        return player.totalCredits - invested
+    }
+
+    private var profitLossColor: Color {
+        profitLoss >= 0 ? .green : .red
+    }
+
+    private var profitLossText: String {
+        if profitLoss >= 0 {
+            return "+$\(Int(profitLoss))"
+        } else {
+            return "-$\(Int(abs(profitLoss)))"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 16) {
+            // Position
+            Image(systemName: positionIcon)
+                .font(.title2)
+                .foregroundColor(positionColor)
+                .frame(width: 30)
+
+            // Player Avatar
+            Circle()
+                .fill(Color.blue.opacity(0.2))
+                .frame(width: 40, height: 40)
+                .overlay(
+                    Text(String(player.name.prefix(1)).uppercased())
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.blue)
+                )
+
+            // Player Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(player.name)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+
+                Text("\(player.buyIns) buy-in\(player.buyIns == 1 ? "" : "s") • Invested: $\(Int(Double(player.buyIns) * session.creditsPerBuyIn))")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            // Credits and Profit/Loss
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("$\(Int(player.totalCredits))")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+
+                Text(profitLossText)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(profitLossColor)
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+    }
+}
+
+struct StatRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            Text(value)
+                .font(.subheadline)
+                .fontWeight(.medium)
         }
     }
 }
