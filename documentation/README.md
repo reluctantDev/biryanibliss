@@ -15,10 +15,24 @@ Welcome to the ChipTally documentation! This directory contains comprehensive gu
 ### 🔧 Technical Implementation
 - [**Edit & Delete Groups**](./05-edit-delete-groups.md) - Group management functionality
 - [**Bug Fixes & Troubleshooting**](./06-bug-fixes-troubleshooting.md) - Common issues and solutions
+- [**Layout Reorganization**](./09-layout-reorganization.md) - UI layout improvements
+- [**Add Player During Game**](./10-add-player-during-game.md) - Mid-game player addition
+- [**Game Results View**](./11-game-results-view.md) - Completed session results
+- [**Session State Persistence**](./12-session-state-persistence-fix.md) - Data saving fixes
+- [**Simplified Game Options**](./13-simplified-game-options.md) - End-game option improvements
 
 ### 📖 Quick Start Guide
 - [**Getting Started**](./07-getting-started.md) - How to use ChipTally
 - [**Feature Overview**](./08-feature-overview.md) - Complete feature summary
+
+### 🛠️ Development & Setup
+- [**Project Rename Instructions**](./ProjectRename_Instructions.md) - How to rename the project
+- [**App Icon Setup**](./AppIcon_Setup_Instructions.md) - Icon configuration guide
+- [**Icon Summary**](./Icon_Summary.md) - Icon implementation details
+- [**Icon Validation Fix**](./Icon_Validation_Fix.md) - Icon troubleshooting
+- [**Credit Manager Changes**](./Credit_Manager_to_Chip_Ledger_Changes.md) - UI terminology updates
+- [**NewGame Fix Verification**](./NewGame_Fix_Verification.md) - Bug fix documentation
+- [**Test Plan**](./TestPlan.md) - Testing strategy and procedures
 
 ## 🚀 Quick Navigation
 
