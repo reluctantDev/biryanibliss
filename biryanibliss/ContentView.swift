@@ -111,14 +111,6 @@ struct ContentView: View {
 
                             // Scrollable area for additional sessions (3-10)
                             if hasMoreSessions {
-                                Divider()
-                                    .padding(.vertical, 8)
-
-                                Text("Older Sessions")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .padding(.bottom, 4)
-
                                 ScrollView {
                                     LazyVStack(spacing: 12) {
                                         ForEach(Array(recentSessions.dropFirst(2).enumerated()), id: \.element.id) { index, session in
@@ -142,7 +134,7 @@ struct ContentView: View {
                                     }
                                     .padding(.top, 12)
                                 }
-                                .frame(maxHeight: 150) // Fixed height for scrollable area
+                                .frame(maxHeight: 200) // Fixed height for scrollable area
                             }
                         }
                     }
