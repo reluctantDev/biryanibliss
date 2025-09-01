@@ -267,7 +267,7 @@ struct ContentView: View {
 
                             Spacer()
 
-                            Text("\(Int(gameManager.actualCreditsInPlay))")
+                            Text("\(Int(gameManager.totalPotCredits))")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                                 .foregroundColor(.orange)
