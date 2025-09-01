@@ -119,11 +119,13 @@ struct LeaderboardView: View {
                         VStack(spacing: 16) {
                             Button(action: {
                                 // Create new game session and go back to main screen
-                                let newSession = gameManager.createGameSession()
-                                dismiss()
-                                isPresented = false
-                                // Call the callback to dismiss all views and return to main
-                                onNewGame?()
+                                if let newSession = gameManager.createGameSession() {
+                                    dismiss()
+                                    isPresented = false
+                                    // Call the callback to dismiss all views and return to main
+                                    onNewGame?()
+                                }
+                                // If session creation fails (limit reached), stay on current screen
                             }) {
                                 HStack {
                                     Image(systemName: "play.circle.fill")

@@ -28,11 +28,30 @@ struct ContentView: View {
     @State private var showingDuplicateSessionAlert = false
     @State private var existingActiveSession: GameSession?
     @State private var showingGameResults = false
+    @State private var showingSessionLimitAlert = false
+    @State private var showingErrorAlert = false
+    @State private var errorMessage = ""
+    @State private var showingSettings = false
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
+                    // Header with Settings Button
+                    HStack {
+                        Spacer()
+                        Button(action: {
+                            showingSettings = true
+                        }) {
+                            Image(systemName: "gearshape.fill")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                        }
+                        .accessibilityLabel("Settings")
+                        .accessibilityHint("Open app settings")
+                    }
+                    .padding(.horizontal)
+
                     // Header
                 VStack(spacing: 12) {
                     Image("chiptally_logo")
@@ -83,8 +102,8 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 20)
                     } else {
-                        // Scrollable sessions: 2 games visible, rest scrollable (max 10 total)
-                        let recentSessions = Array(gameManager.gameSessions.suffix(10).reversed())
+                        // Scrollable sessions: 2 games visible, rest scrollable (hard limit 10 total)
+                        let recentSessions = Array(gameManager.gameSessions.reversed())
                         let visibleSessions = Array(recentSessions.prefix(2))
                         let hasMoreSessions = recentSessions.count > 2
 
@@ -107,6 +126,11 @@ struct ContentView: View {
                                         gameManager.deleteGameSession(at: originalIndex)
                                     }
                                 )
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button("Delete", role: .destructive) {
+                                        gameManager.deleteGameSession(at: originalIndex)
+                                    }
+                                }
                                 .padding(.bottom, index < visibleSessions.count - 1 ? 12 : 0)
                             }
 
@@ -131,6 +155,11 @@ struct ContentView: View {
                                                     gameManager.deleteGameSession(at: originalIndex)
                                                 }
                                             )
+                                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                                Button("Delete", role: .destructive) {
+                                                    gameManager.deleteGameSession(at: originalIndex)
+                                                }
+                                            }
                                         }
                                     }
                                     .padding(.top, 12)
@@ -388,6 +417,12 @@ struct ContentView: View {
                         gameManager.generateDefaultPlayers()
                     }
 
+                    // Check if we can create a new session (max 10 limit)
+                    if !gameManager.canCreateNewSession {
+                        showingSessionLimitAlert = true
+                        return
+                    }
+
                     // Check if there's already an active session with these players
                     let currentPlayerNames = gameManager.players.map { $0.name }
                     if gameManager.hasActiveSessionWithPlayers(currentPlayerNames) {
@@ -395,8 +430,9 @@ struct ContentView: View {
                         showingDuplicateSessionAlert = true
                     } else {
                         // Create a new game session
-                        let newSession = gameManager.createGameSession()
-                        selectedGameSession = newSession
+                        if let newSession = gameManager.createGameSession() {
+                            selectedGameSession = newSession
+                        }
                     }
                 }) {
                     HStack {
@@ -413,6 +449,8 @@ struct ContentView: View {
                     .background(Color.blue)
                     .cornerRadius(25)
                     .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
+                    .accessibilityLabel("Start Game")
+                    .accessibilityHint("Start a new poker game with current players")
                 }
                 .padding(.horizontal)
                 .padding(.bottom)
@@ -466,6 +504,19 @@ struct ContentView: View {
             if let activeSession = existingActiveSession {
                 Text("There's already an active game '\(activeSession.name)' with these players. You can resume the existing game or wait until it's completed to start a new one.")
             }
+        }
+        .alert("Session Limit Reached", isPresented: $showingSessionLimitAlert) {
+            Button("OK") { }
+        } message: {
+            Text("You have reached the maximum limit of 10 game sessions. Please delete an existing session before creating a new one.")
+        }
+        .alert("Error", isPresented: $showingErrorAlert) {
+            Button("OK") { }
+        } message: {
+            Text(errorMessage)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView()
         }
 
     }
@@ -1223,6 +1274,106 @@ struct StatRow: View {
             Text(value)
                 .font(.subheadline)
                 .fontWeight(.medium)
+        }
+    }
+}
+
+struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var showingPrivacyPolicy = false
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                // App Info Section
+                VStack(spacing: 16) {
+                    Image("chiptally_logo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
+
+                    Text("ChipTally")
+                        .font(.title2)
+                        .fontWeight(.bold)
+
+                    Text("Professional Poker Session Management")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+
+                    Text("Version 1.0.0")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+
+                // Features Section
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Features")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+
+                    FeatureRow(icon: "person.3.fill", title: "Player Groups", description: "Save and manage favorite player groups")
+                    FeatureRow(icon: "gamecontroller.fill", title: "Session Tracking", description: "Track up to 10 game sessions")
+                    FeatureRow(icon: "dollarsign.circle.fill", title: "Credit Management", description: "Accurate buy-in and credit tracking")
+                    FeatureRow(icon: "chart.bar.fill", title: "Game Results", description: "Complete session history and statistics")
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+
+                Spacer()
+
+                // Footer
+                VStack(spacing: 8) {
+                    Text("Made with ❤️ for poker players")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text("© 2025 ChipTally")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding()
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct FeatureRow: View {
+    let icon: String
+    let title: String
+    let description: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(.blue)
+                .frame(width: 30)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
         }
     }
 }

@@ -68,6 +68,7 @@ class GameManager: ObservableObject {
     init() {
         updateTotalPotCredits()
         loadDefaultFavoriteGroups()
+        loadGameSessions()
     }
 
     func updateCreditsPerBuyIn() {
@@ -167,21 +168,25 @@ class GameManager: ObservableObject {
                 PlayerGroup(name: "Poker Pros", playerNames: ["Blake", "Cameron", "Drew", "Emery", "Finley", "Harper"])
             ]
         }
+        loadSavedFavoriteGroups()
     }
 
     func addFavoriteGroup(_ group: PlayerGroup) {
         favoriteGroups.append(group)
+        saveFavoriteGroups()
     }
 
     func removeFavoriteGroup(at index: Int) {
         if index < favoriteGroups.count {
             favoriteGroups.remove(at: index)
+            saveFavoriteGroups()
         }
     }
 
     func updateFavoriteGroup(at index: Int, with updatedGroup: PlayerGroup) {
         if index < favoriteGroups.count {
             favoriteGroups[index] = updatedGroup
+            saveFavoriteGroups()
         }
     }
 
@@ -211,7 +216,12 @@ class GameManager: ObservableObject {
 
     // MARK: - Game Session Management
 
-    func createGameSession() -> GameSession {
+    func createGameSession() -> GameSession? {
+        // Check if we've reached the maximum limit of 10 games
+        if gameSessions.count >= 10 {
+            return nil // Cannot create more games
+        }
+
         let sessionNumber = gameSessions.count + 1
         let sessionName = "Game \(sessionNumber)"
 
@@ -228,12 +238,18 @@ class GameManager: ObservableObject {
         )
 
         gameSessions.append(session)
+        saveGameSessions()
         return session
+    }
+
+    var canCreateNewSession: Bool {
+        return gameSessions.count < 10
     }
 
     func updateGameSession(_ session: GameSession) {
         if let index = gameSessions.firstIndex(where: { $0.id == session.id }) {
             gameSessions[index] = session
+            saveGameSessions()
         }
     }
 
@@ -247,6 +263,7 @@ class GameManager: ObservableObject {
     func deleteGameSession(at index: Int) {
         if index < gameSessions.count {
             gameSessions.remove(at: index)
+            saveGameSessions()
         }
     }
 
@@ -283,6 +300,48 @@ class GameManager: ObservableObject {
         players.append(newPlayer)
         numberOfPlayers = players.count
         updateTotalPotCredits()
+    }
+
+    // MARK: - Data Persistence
+
+    private func saveGameSessions() {
+        do {
+            let data = try JSONEncoder().encode(gameSessions)
+            UserDefaults.standard.set(data, forKey: "SavedGameSessions")
+        } catch {
+            print("Failed to save game sessions: \(error)")
+        }
+    }
+
+    private func loadGameSessions() {
+        guard let data = UserDefaults.standard.data(forKey: "SavedGameSessions") else { return }
+
+        do {
+            gameSessions = try JSONDecoder().decode([GameSession].self, from: data)
+        } catch {
+            print("Failed to load game sessions: \(error)")
+            gameSessions = []
+        }
+    }
+
+    private func saveFavoriteGroups() {
+        do {
+            let data = try JSONEncoder().encode(favoriteGroups)
+            UserDefaults.standard.set(data, forKey: "SavedFavoriteGroups")
+        } catch {
+            print("Failed to save favorite groups: \(error)")
+        }
+    }
+
+    private func loadSavedFavoriteGroups() {
+        guard let data = UserDefaults.standard.data(forKey: "SavedFavoriteGroups") else { return }
+
+        do {
+            let savedGroups = try JSONDecoder().decode([PlayerGroup].self, from: data)
+            favoriteGroups.append(contentsOf: savedGroups)
+        } catch {
+            print("Failed to load favorite groups: \(error)")
+        }
     }
 }
 
