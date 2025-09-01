@@ -61,6 +61,10 @@ class GameManager: ObservableObject {
         return numberOfPlayers > 0 ? totalPotCredits / Double(numberOfPlayers) : 0.0
     }
 
+    var actualCreditsInPlay: Double {
+        return players.reduce(0) { $0 + $1.totalCredits }
+    }
+
     init() {
         updateTotalPotCredits()
         loadDefaultFavoriteGroups()

@@ -7,6 +7,9 @@ struct GamePlayView: View {
     @State private var showingGameEnd = false
     @State private var showingRestartAlert = false
     @State private var showingAddPlayer = false
+    @State private var showingBuyInConfirmation = false
+    @State private var pendingBuyInAmount: Double = 0.0
+    @State private var originalBuyInAmount: Double = 0.0
     
     var body: some View {
         NavigationView {
@@ -77,13 +80,21 @@ struct GamePlayView: View {
                     // Game Summary
                     HStack(spacing: 16) {
                         VStack(spacing: 2) {
-                            Text("Total Credits")
+                            Text("Buy-in Amount")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                            Text("\(Int(gameManager.getTotalPotInCredits()))")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.green)
+
+                            Button(action: {
+                                originalBuyInAmount = gameManager.creditsPerBuyIn
+                                pendingBuyInAmount = gameManager.creditsPerBuyIn
+                                showingBuyInConfirmation = true
+                            }) {
+                                Text("\(Int(gameManager.creditsPerBuyIn))")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.green)
+                                    .underline()
+                            }
                         }
 
                         VStack(spacing: 2) {
@@ -230,6 +241,28 @@ struct GamePlayView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("This will reset the entire game and return to setup. Are you sure?")
+        }
+        .alert("Change Buy-in Amount", isPresented: $showingBuyInConfirmation) {
+            TextField("Buy-in amount", value: $pendingBuyInAmount, format: .number)
+                .keyboardType(.decimalPad)
+
+            Button("Confirm") {
+                // Apply the new buy-in amount
+                gameManager.creditsPerBuyIn = pendingBuyInAmount
+                gameManager.updateTotalPotCredits()
+
+                // Update all existing players' credits to match new buy-in
+                for i in 0..<gameManager.players.count {
+                    gameManager.players[i].totalCredits = pendingBuyInAmount * Double(gameManager.players[i].buyIns)
+                }
+            }
+
+            Button("Cancel", role: .cancel) {
+                // Reset to original amount
+                pendingBuyInAmount = originalBuyInAmount
+            }
+        } message: {
+            Text("Are you sure you want to change the buy-in amount from \(Int(originalBuyInAmount)) to \(Int(pendingBuyInAmount)) chips? This will update all players' credits accordingly.")
         }
         .sheet(isPresented: $showingAddPlayer) {
             AddPlayerView(

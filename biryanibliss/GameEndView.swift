@@ -23,7 +23,7 @@ struct GameEndView: View {
             }
             return false
         }
-        return allEntered && abs(totalFinalCredits - gameManager.totalPotCredits) < 0.01
+        return allEntered && abs(totalFinalCredits - gameManager.actualCreditsInPlay) < 0.01
     }
 
     private func saveGameSession() {
@@ -77,7 +77,7 @@ struct GameEndView: View {
                             Text("Required Total")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                            Text("\(Int(gameManager.totalPotCredits))")
+                            Text("\(Int(gameManager.actualCreditsInPlay))")
                                 .font(.caption)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.blue)
@@ -97,7 +97,7 @@ struct GameEndView: View {
                             Text("Status")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                            Text(isFinishEnabled ? "✓ Match" : "✗ \(Int(abs(totalFinalCredits - gameManager.totalPotCredits))) off")
+                            Text(isFinishEnabled ? "✓ Match" : "✗ \(Int(abs(totalFinalCredits - gameManager.actualCreditsInPlay))) off")
                                 .font(.caption)
                                 .fontWeight(.semibold)
                                 .foregroundColor(isFinishEnabled ? .green : .red)

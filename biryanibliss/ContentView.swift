@@ -35,9 +35,10 @@ struct ContentView: View {
                 VStack(spacing: 20) {
                     // Header
                 VStack(spacing: 12) {
-                    Image(systemName: "circle.grid.3x3.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.blue)
+                    Image("chiptally_logo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 60, height: 60)
                     
                     Text("Chip Ledger")
                         .font(.title)
@@ -163,9 +164,9 @@ struct ContentView: View {
                     }
 
                     VStack(spacing: 16) {
-                        // Buy-in Credits (Editable)
+                        // Initial Buy-in Credits (Editable)
                         HStack {
-                            Text("Buy-in Chips:")
+                            Text("Initial Buy-ins:")
                                 .font(.subheadline)
                                 .foregroundColor(.primary)
 
@@ -231,13 +232,13 @@ struct ContentView: View {
 
                         // Total Pot Credits (Display Only)
                         HStack {
-                            Text("Total Pot Chips:")
+                            Text("Total Credits in Play:")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
 
                             Spacer()
 
-                            Text("\(Int(gameManager.totalPotCredits))")
+                            Text("\(Int(gameManager.actualCreditsInPlay))")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                                 .foregroundColor(.orange)
@@ -466,6 +467,7 @@ struct ContentView: View {
                 Text("There's already an active game '\(activeSession.name)' with these players. You can resume the existing game or wait until it's completed to start a new one.")
             }
         }
+
     }
 }
 
@@ -914,11 +916,11 @@ struct GameSessionCard: View {
                 // Game info
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Buy-in: $\(Int(session.creditsPerBuyIn))")
+                        Text("Initial Buy-in: $\(Int(session.creditsPerBuyIn))")
                             .font(.caption2)
                             .foregroundColor(.secondary)
 
-                        Text("Pot: $\(Int(session.totalPotCredits))")
+                        Text("Initial Pot: $\(Int(session.totalPotCredits))")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
@@ -1005,6 +1007,12 @@ struct GameResultsView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 16) {
+                        // ChipTally logo
+                        Image("chiptally_logo")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 50, height: 50)
+
                         Image(systemName: "trophy.fill")
                             .font(.system(size: 60))
                             .foregroundColor(.yellow)
