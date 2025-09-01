@@ -10,7 +10,14 @@ struct GamePlayView: View {
     @State private var showingBuyInConfirmation = false
     @State private var pendingBuyInAmount: Double = 0.0
     @State private var originalBuyInAmount: Double = 0.0
-    
+
+    private var timeFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter
+    }
+
     var body: some View {
         NavigationView {
             if gameManager.players.isEmpty {
@@ -61,10 +68,26 @@ struct GamePlayView: View {
 
                         Spacer()
 
-                        Text("Chip Ledger")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.blue)
+                        VStack(spacing: 2) {
+                            HStack(spacing: 8) {
+                                Text(gameSession?.name ?? "Current Game")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.blue)
+
+                                if let session = gameSession {
+                                    Circle()
+                                        .fill(session.isCompleted ? Color.gray : Color.green)
+                                        .frame(width: 8, height: 8)
+                                }
+                            }
+
+                            if let session = gameSession {
+                                Text("Started: \(session.dateCreated, formatter: timeFormatter)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
 
                         Spacer()
 
@@ -124,21 +147,42 @@ struct GamePlayView: View {
                 .padding(12)
                 .background(Color(.systemBackground))
 
-                // Players List
-                LazyVStack(spacing: 12) {
-                    ForEach(Array(gameManager.players.enumerated()), id: \.element.id) { index, player in
-                        PlayerGameCard(
-                            player: player,
-                            onNameChange: { newName in
-                                gameManager.updatePlayerName(playerId: player.id, newName: newName)
-                            },
-                            onBuyInsChange: { newBuyIns in
-                                gameManager.updatePlayerBuyIns(playerId: player.id, newBuyIns: newBuyIns)
-                            }
-                        )
+                // Players Section
+                VStack(alignment: .leading, spacing: 16) {
+                    // Section Header
+                    HStack {
+                        Text("Players")
+                            .font(.system(size: 20, weight: .bold, design: .default))
+                            .foregroundColor(.primary)
+
+                        Spacer()
+
+                        Text("\(gameManager.players.count) players")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
                     }
+                    .padding(.horizontal, 16)
+
+                    // Players List
+                    LazyVStack(spacing: 16) {
+                        ForEach(Array(gameManager.players.enumerated()), id: \.element.id) { index, player in
+                            PlayerGameCard(
+                                player: player,
+                                onNameChange: { newName in
+                                    gameManager.updatePlayerName(playerId: player.id, newName: newName)
+                                },
+                                onBuyInsChange: { newBuyIns in
+                                    gameManager.updatePlayerBuyIns(playerId: player.id, newBuyIns: newBuyIns)
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 16)
                 }
-                .padding(.horizontal, 12)
                 
                 // Action Buttons
                 VStack(spacing: 8) {
@@ -280,118 +324,174 @@ struct PlayerGameCard: View {
 
     @State private var showingNameInput = false
     @State private var tempName = ""
-    
+    @State private var showingBuyInConfirmation = false
+
+    private var playerInitials: String {
+        let components = player.name.components(separatedBy: " ")
+        if components.count >= 2 {
+            return String(components[0].prefix(1) + components[1].prefix(1)).uppercased()
+        } else {
+            return String(player.name.prefix(2)).uppercased()
+        }
+    }
+
+    private var avatarColor: Color {
+        let colors: [Color] = [.blue, .green, .orange, .purple, .pink, .indigo]
+        let hash = abs(player.name.hashValue)
+        return colors[hash % colors.count]
+    }
+
     var body: some View {
-        VStack(spacing: 12) {
-            // Player Header with Editable Name
-            HStack {
-                // Player Avatar
+        HStack(spacing: 16) {
+            // Enhanced Player Avatar
+            ZStack {
                 Circle()
-                    .fill(Color.blue.opacity(0.2))
-                    .frame(width: 32, height: 32)
-                    .overlay(
-                        Text(String(player.name.prefix(1)).uppercased())
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.blue)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [avatarColor.opacity(0.8), avatarColor.opacity(0.4)]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
+                    .frame(width: 50, height: 50)
 
-                // Player Name (Editable)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(player.name)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .onTapGesture {
-                            tempName = player.name
-                            showingNameInput = true
-                        }
-
-                    Text("Tap to edit")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-
-                // Edit Name Button
-                Button(action: {
-                    tempName = player.name
-                    showingNameInput = true
-                }) {
-                    Image(systemName: "pencil.circle.fill")
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                }
+                Text(playerInitials)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
             }
-            
-            // Buy-ins and Credits in single row
-            HStack {
-                // Buy-ins
-                HStack(spacing: 4) {
-                    Text("Buy-ins:")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+            .shadow(color: avatarColor.opacity(0.3), radius: 4, x: 0, y: 2)
+
+            // Player Info Section
+            VStack(alignment: .leading, spacing: 8) {
+                // Player Name with Edit Button
+                HStack(spacing: 8) {
+                    Text(player.name)
+                        .font(.system(size: 17, weight: .semibold, design: .default))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
 
                     Button(action: {
-                        if player.buyIns > 1 {
-                            onBuyInsChange(player.buyIns - 1)
-                        }
+                        tempName = player.name
+                        showingNameInput = true
                     }) {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.caption)
-                            .foregroundColor(.red)
+                        Image(systemName: "pencil.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.blue.opacity(0.7))
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    Spacer()
+                }
+
+                // Stats Row
+                HStack(spacing: 20) {
+                    // Buy-ins Section
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Buy-ins")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+
+                        HStack(spacing: 8) {
+                            // Buy-in Display with Indicator
+                            HStack(spacing: 4) {
+                                Text("\(player.buyIns)")
+                                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                                    .foregroundColor(.primary)
+
+                                if player.buyIns > 1 {
+                                    HStack(spacing: 2) {
+                                        Text("(1")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.blue)
+
+                                        Text("+\(player.buyIns - 1)")
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(.orange)
+
+                                        Text(")")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                            }
+
+                            // Add Buy-in Button
+                            Button(action: {
+                                showingBuyInConfirmation = true
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.green)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+
+                        // Additional Buy-ins Indicator
+                        if player.buyIns > 1 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.orange)
+
+                                Text("\(player.buyIns - 1) additional buy-in\(player.buyIns > 2 ? "s" : "")")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.orange)
+                            }
+                        }
                     }
 
-                    Text("\(player.buyIns)")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.blue)
-                        .frame(minWidth: 20)
+                    // Credits Section
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Credits")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
 
-                    Button(action: {
-                        onBuyInsChange(player.buyIns + 1)
-                    }) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.caption)
+                        Text("$\(Int(player.totalCredits))")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
                             .foregroundColor(.green)
                     }
-                }
 
-                Spacer()
-
-                // Initial Credits (Non-editable)
-                HStack(spacing: 4) {
-                    Text("Initial Credits:")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Text("\(Int(player.totalCredits))")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.green)
-                        .frame(minWidth: 30)
+                    Spacer()
                 }
             }
-
         }
-        .padding(12)
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(.systemGray5), lineWidth: 0.5)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(player.name), \(player.buyIns) buy-ins, \(Int(player.totalCredits)) credits")
         .alert("Edit Player Name", isPresented: $showingNameInput) {
             TextField("Player name", text: $tempName)
                 .textInputAutocapitalization(.words)
-            
+
             Button("Update") {
                 let trimmedName = tempName.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !trimmedName.isEmpty && trimmedName.count >= 2 {
                     onNameChange(trimmedName)
                 }
             }
-            
+
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("Enter new name for this player")
+        }
+        .alert("Add Buy-in", isPresented: $showingBuyInConfirmation) {
+            Button("Confirm", role: .destructive) {
+                onBuyInsChange(player.buyIns + 1)
+            }
+
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("\(player.name) will purchase an additional buy-in. This action cannot be undone as real money is involved.")
         }
     }
 }

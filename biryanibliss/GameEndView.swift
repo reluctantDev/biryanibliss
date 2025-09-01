@@ -180,12 +180,7 @@ struct GameEndView: View {
                 finalCredits[player.id] = String(Int(player.totalCredits))
             }
         }
-        .onDisappear {
-            // Save session when view disappears (fallback)
-            if isFinishEnabled {
-                saveGameSession()
-            }
-        }
+
         .fullScreenCover(isPresented: $showingLeaderboard) {
             LeaderboardView(gameManager: gameManager, isPresented: $isPresented, onNewGame: onNewGame)
         }
