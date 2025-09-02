@@ -57,6 +57,7 @@ class GameManager: ObservableObject {
 
     private var lastLoadedGroupName: String?
     private var initialGameBuyIn: Double? // Track the buy-in amount when game starts
+    private var favoriteGroupsLoaded = false // Track if favorite groups have been loaded
 
     var creditsPerPlayer: Double {
         return numberOfPlayers > 0 ? totalPotCredits / Double(numberOfPlayers) : 0.0
@@ -179,13 +180,21 @@ class GameManager: ObservableObject {
     // MARK: - Favorite Groups Management
 
     func loadDefaultFavoriteGroups() {
+        // Only load favorite groups once
+        guard !favoriteGroupsLoaded else { return }
+
+        // First, try to load saved groups
+        loadSavedFavoriteGroups()
+
+        // If no saved groups exist, create defaults
         if favoriteGroups.isEmpty {
             favoriteGroups = [
                 PlayerGroup(name: "Weekend Warriors", playerNames: ["Morgan", "Riley", "Avery", "Quinn"]),
                 PlayerGroup(name: "Poker Pros", playerNames: ["Blake", "Cameron", "Drew", "Emery", "Finley", "Harper"])
             ]
         }
-        loadSavedFavoriteGroups()
+
+        favoriteGroupsLoaded = true
     }
 
     func addFavoriteGroup(_ group: PlayerGroup) {
@@ -362,7 +371,7 @@ class GameManager: ObservableObject {
 
         do {
             let savedGroups = try JSONDecoder().decode([PlayerGroup].self, from: data)
-            favoriteGroups.append(contentsOf: savedGroups)
+            favoriteGroups = savedGroups // Replace instead of append to avoid duplicates
         } catch {
             print("Failed to load favorite groups: \(error)")
         }
