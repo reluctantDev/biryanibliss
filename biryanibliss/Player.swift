@@ -293,8 +293,11 @@ class GameManager: ObservableObject {
         }
     }
 
-    func updateFavoriteGroup(at index: Int, with updatedGroup: PlayerGroup) {
-        guard index < favoriteGroups.count else { return }
+    func updateFavoriteGroup(at index: Int, with updatedGroup: PlayerGroup) -> Bool {
+        guard index < favoriteGroups.count else {
+            print("Error: Invalid index \(index) for favoriteGroups count \(favoriteGroups.count)")
+            return false
+        }
 
         // Check for duplicate names (case-insensitive), excluding the current group being updated
         let groupNameLower = updatedGroup.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
@@ -306,6 +309,11 @@ class GameManager: ObservableObject {
         if !isDuplicate {
             favoriteGroups[index] = updatedGroup
             saveFavoriteGroups()
+            debugFavoriteGroups() // Show updated state
+            return true
+        } else {
+            print("Error: Cannot update group - duplicate name '\(updatedGroup.name)' found")
+            return false
         }
     }
 
@@ -404,6 +412,13 @@ class GameManager: ObservableObject {
 
     func clearAllGameSessions() {
         gameSessions.removeAll()
+        saveGameSessions()
+    }
+
+    func deleteGameSessions(withIds ids: Set<UUID>) {
+        gameSessions.removeAll { session in
+            ids.contains(session.id)
+        }
         saveGameSessions()
     }
 

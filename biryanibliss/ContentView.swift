@@ -33,6 +33,10 @@ struct ContentView: View {
     @State private var errorMessage = ""
     @State private var showingSettings = false
     @State private var showingResetSessionsAlert = false
+    @State private var isSelectMode = false
+    @State private var selectedSessionIds: Set<UUID> = []
+    @State private var showingDeleteSelectedAlert = false
+    @State private var showingDeleteAllAlert = false
     
     var body: some View {
         NavigationView {
@@ -84,23 +88,94 @@ struct ContentView: View {
 
                         Spacer()
 
-                        // Reset Sessions Button (only show if there are sessions)
+                        // Multi-select and delete controls (only show if there are sessions)
                         if !gameManager.gameSessions.isEmpty {
-                            Button(action: {
-                                showingResetSessionsAlert = true
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "trash.circle.fill")
-                                        .font(.title3)
-                                    Text("Reset")
-                                        .font(.caption)
-                                        .fontWeight(.medium)
+                            HStack(spacing: 12) {
+                                if isSelectMode {
+                                    // Delete Selected Button
+                                    Button(action: {
+                                        showingDeleteSelectedAlert = true
+                                    }) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "trash.fill")
+                                                .font(.subheadline)
+                                            Text("Delete (\(selectedSessionIds.count))")
+                                                .font(.subheadline)
+                                                .fontWeight(.semibold)
+                                        }
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(selectedSessionIds.isEmpty ? Color.gray : Color.red)
+                                        .cornerRadius(10)
+                                        .shadow(color: selectedSessionIds.isEmpty ? .clear : .red.opacity(0.3), radius: 4, x: 0, y: 2)
+                                    }
+                                    .disabled(selectedSessionIds.isEmpty)
+
+                                    // Cancel Selection Button
+                                    Button(action: {
+                                        isSelectMode = false
+                                        selectedSessionIds.removeAll()
+                                    }) {
+                                        Text("Cancel")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.blue)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 8)
+                                            .background(Color.blue.opacity(0.15))
+                                            .cornerRadius(10)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 10)
+                                                    .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                                            )
+                                    }
+                                } else {
+                                    // Select Button
+                                    Button(action: {
+                                        isSelectMode = true
+                                        selectedSessionIds.removeAll()
+                                    }) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "checkmark.circle")
+                                                .font(.subheadline)
+                                            Text("Select")
+                                                .font(.subheadline)
+                                                .fontWeight(.semibold)
+                                        }
+                                        .foregroundColor(.blue)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color.blue.opacity(0.15))
+                                        .cornerRadius(10)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                                        )
+                                    }
+
+                                    // Delete All Button
+                                    Button(action: {
+                                        showingDeleteAllAlert = true
+                                    }) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "trash.circle.fill")
+                                                .font(.subheadline)
+                                            Text("Delete All")
+                                                .font(.subheadline)
+                                                .fontWeight(.semibold)
+                                        }
+                                        .foregroundColor(.red)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color.red.opacity(0.15))
+                                        .cornerRadius(10)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                                        )
+                                    }
                                 }
-                                .foregroundColor(.red)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.red.opacity(0.1))
-                                .cornerRadius(8)
                             }
                         }
                     }
@@ -135,16 +210,27 @@ struct ContentView: View {
                                 GameSessionCard(
                                     session: session,
                                     onTap: {
-                                        selectedGameSession = session
-                                        if session.isCompleted {
-                                            showingGameResults = true
-                                        } else {
-                                            gameManager.loadPlayersFromSession(session)
-                                            showingGame = true
+                                        if !isSelectMode {
+                                            selectedGameSession = session
+                                            if session.isCompleted {
+                                                showingGameResults = true
+                                            } else {
+                                                gameManager.loadPlayersFromSession(session)
+                                                showingGame = true
+                                            }
                                         }
                                     },
                                     onDelete: {
                                         gameManager.deleteGameSession(at: originalIndex)
+                                    },
+                                    isSelectMode: isSelectMode,
+                                    isSelected: selectedSessionIds.contains(session.id),
+                                    onSelectionToggle: {
+                                        if selectedSessionIds.contains(session.id) {
+                                            selectedSessionIds.remove(session.id)
+                                        } else {
+                                            selectedSessionIds.insert(session.id)
+                                        }
                                     }
                                 )
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -164,16 +250,27 @@ struct ContentView: View {
                                             GameSessionCard(
                                                 session: session,
                                                 onTap: {
-                                                    selectedGameSession = session
-                                                    if session.isCompleted {
-                                                        showingGameResults = true
-                                                    } else {
-                                                        gameManager.loadPlayersFromSession(session)
-                                                        showingGame = true
+                                                    if !isSelectMode {
+                                                        selectedGameSession = session
+                                                        if session.isCompleted {
+                                                            showingGameResults = true
+                                                        } else {
+                                                            gameManager.loadPlayersFromSession(session)
+                                                            showingGame = true
+                                                        }
                                                     }
                                                 },
                                                 onDelete: {
                                                     gameManager.deleteGameSession(at: originalIndex)
+                                                },
+                                                isSelectMode: isSelectMode,
+                                                isSelected: selectedSessionIds.contains(session.id),
+                                                onSelectionToggle: {
+                                                    if selectedSessionIds.contains(session.id) {
+                                                        selectedSessionIds.remove(session.id)
+                                                    } else {
+                                                        selectedSessionIds.insert(session.id)
+                                                    }
                                                 }
                                             )
                                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -600,13 +697,23 @@ struct ContentView: View {
         } message: {
             Text(errorMessage)
         }
-        .alert("Reset All Sessions", isPresented: $showingResetSessionsAlert) {
-            Button("Reset All", role: .destructive) {
+        .alert("Delete Selected Sessions", isPresented: $showingDeleteSelectedAlert) {
+            Button("Delete \(selectedSessionIds.count) Sessions", role: .destructive) {
+                gameManager.deleteGameSessions(withIds: selectedSessionIds)
+                selectedSessionIds.removeAll()
+                isSelectMode = false
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This will permanently delete \(selectedSessionIds.count) selected game sessions. This action cannot be undone.")
+        }
+        .alert("Delete All Sessions", isPresented: $showingDeleteAllAlert) {
+            Button("Delete All", role: .destructive) {
                 gameManager.clearAllGameSessions()
             }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("This will permanently delete all game sessions. This action cannot be undone.")
+            Text("This will permanently delete all \(gameManager.gameSessions.count) game sessions. This action cannot be undone.")
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
@@ -1092,10 +1199,16 @@ struct EditFavoriteGroupView: View {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
 
-        let updatedGroup = PlayerGroup(name: groupName.trimmingCharacters(in: .whitespacesAndNewlines),
-                                     playerNames: validPlayerNames)
-        gameManager.updateFavoriteGroup(at: groupIndex, with: updatedGroup)
-        dismiss()
+        let trimmedGroupName = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let updatedGroup = PlayerGroup(name: trimmedGroupName, playerNames: validPlayerNames)
+        let success = gameManager.updateFavoriteGroup(at: groupIndex, with: updatedGroup)
+
+        if success {
+            dismiss()
+        } else {
+            // Could add an alert here to show the error to the user
+            print("Failed to save group changes")
+        }
     }
 }
 
@@ -1103,6 +1216,9 @@ struct GameSessionCard: View {
     let session: GameSession
     let onTap: () -> Void
     let onDelete: () -> Void
+    let isSelectMode: Bool
+    let isSelected: Bool
+    let onSelectionToggle: () -> Void
 
     private var formattedDate: String {
         let formatter = DateFormatter()
@@ -1132,10 +1248,17 @@ struct GameSessionCard: View {
     }
 
     var body: some View {
-        Button(action: onTap) {
+        Button(action: isSelectMode ? onSelectionToggle : onTap) {
             VStack(alignment: .leading, spacing: 12) {
                 // Header
                 HStack {
+                    // Selection indicator
+                    if isSelectMode {
+                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            .foregroundColor(isSelected ? .blue : .gray)
+                            .font(.title3)
+                    }
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text(session.name)
                             .font(.headline)
