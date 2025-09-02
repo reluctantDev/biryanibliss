@@ -32,6 +32,7 @@ struct ContentView: View {
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
     @State private var showingSettings = false
+    @State private var showingResetSessionsAlert = false
     
     var body: some View {
         NavigationView {
@@ -82,6 +83,26 @@ struct ContentView: View {
                             .fontWeight(.bold)
 
                         Spacer()
+
+                        // Reset Sessions Button (only show if there are sessions)
+                        if !gameManager.gameSessions.isEmpty {
+                            Button(action: {
+                                showingResetSessionsAlert = true
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "trash.circle.fill")
+                                        .font(.title3)
+                                    Text("Reset")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(8)
+                            }
+                        }
                     }
 
                     if gameManager.gameSessions.isEmpty {
@@ -193,7 +214,7 @@ struct ContentView: View {
                     }
 
                     VStack(spacing: 16) {
-                        // Initial Buy-in Credits (Editable)
+                        // Initial Buy-in Credits (Editable with increment/decrement)
                         HStack {
                             Text("Initial Buy-ins:")
                                 .font(.subheadline)
@@ -201,19 +222,43 @@ struct ContentView: View {
 
                             Spacer()
 
-                            TextField("200", value: $gameManager.creditsPerBuyIn, format: .number)
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                                .onChange(of: gameManager.creditsPerBuyIn) { _ in
+                            HStack(spacing: 12) {
+                                // Decrement button
+                                Button(action: {
+                                    let newValue = max(50, gameManager.creditsPerBuyIn - 50)
+                                    gameManager.creditsPerBuyIn = newValue
                                     gameManager.updateTotalPotCredits()
+                                }) {
+                                    Image(systemName: "minus.circle.fill")
+                                        .font(.title3)
+                                        .foregroundColor(gameManager.creditsPerBuyIn > 50 ? .red : .gray)
                                 }
+                                .disabled(gameManager.creditsPerBuyIn <= 50)
 
-                            Text("Chips")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                                // Current value display
+                                Text("\(Int(gameManager.creditsPerBuyIn))")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .frame(width: 60)
+                                    .multilineTextAlignment(.center)
+
+                                // Increment button
+                                Button(action: {
+                                    let newValue = min(2000, gameManager.creditsPerBuyIn + 50)
+                                    gameManager.creditsPerBuyIn = newValue
+                                    gameManager.updateTotalPotCredits()
+                                }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.title3)
+                                        .foregroundColor(gameManager.creditsPerBuyIn < 2000 ? .green : .gray)
+                                }
+                                .disabled(gameManager.creditsPerBuyIn >= 2000)
+
+                                Text("Credits")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .frame(width: 50, alignment: .leading)
+                            }
                         }
                         .padding()
                         .background(Color(.systemBackground))
@@ -227,32 +272,39 @@ struct ContentView: View {
 
                             Spacer()
 
-                            Button(action: {
-                                if gameManager.numberOfPlayers > 1 {
-                                    gameManager.numberOfPlayers -= 1
-                                    gameManager.updateTotalPotCredits()
+                            HStack(spacing: 12) {
+                                Button(action: {
+                                    if gameManager.numberOfPlayers > 1 {
+                                        gameManager.numberOfPlayers -= 1
+                                        gameManager.updateTotalPotCredits()
+                                    }
+                                }) {
+                                    Image(systemName: "minus.circle.fill")
+                                        .font(.title3)
+                                        .foregroundColor(.red)
                                 }
-                            }) {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.title3)
-                                    .foregroundColor(.red)
-                            }
 
-                            Text("\(gameManager.numberOfPlayers)")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.blue)
-                                .frame(minWidth: 30)
+                                Text("\(gameManager.numberOfPlayers)")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.blue)
+                                    .frame(width: 60)
+                                    .multilineTextAlignment(.center)
 
-                            Button(action: {
-                                if gameManager.numberOfPlayers < 12 {
-                                    gameManager.numberOfPlayers += 1
-                                    gameManager.updateTotalPotCredits()
+                                Button(action: {
+                                    if gameManager.numberOfPlayers < 12 {
+                                        gameManager.numberOfPlayers += 1
+                                        gameManager.updateTotalPotCredits()
+                                    }
+                                }) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.title3)
+                                        .foregroundColor(.green)
                                 }
-                            }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title3)
-                                    .foregroundColor(.green)
+
+                                // Empty space to align with Credits label above
+                                Text("")
+                                    .frame(width: 50)
                             }
                         }
                         .padding()
@@ -267,14 +319,26 @@ struct ContentView: View {
 
                             Spacer()
 
-                            Text("\(Int(gameManager.totalPotCredits))")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.orange)
+                            HStack(spacing: 12) {
+                                // Empty spaces to align with buttons above
+                                Text("")
+                                    .frame(width: 24)
 
-                            Text("Chips")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                                Text("\(Int(gameManager.totalPotCredits))")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.orange)
+                                    .frame(width: 60)
+                                    .multilineTextAlignment(.center)
+
+                                Text("")
+                                    .frame(width: 24)
+
+                                Text("Credits")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .frame(width: 50, alignment: .leading)
+                            }
                         }
                         .padding()
                         .background(Color(.systemGray6))
@@ -308,12 +372,9 @@ struct ContentView: View {
                         }
                     }
 
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 12) {
+                    VStack(spacing: 8) {
                         ForEach(Array(gameManager.favoriteGroups.enumerated()), id: \.element.id) { index, group in
-                            FavoriteGroupCard(
+                            FavoriteGroupListItem(
                                 group: group,
                                 gameManager: gameManager,
                                 isSelected: selectedGroupIndex == index,
@@ -430,6 +491,7 @@ struct ContentView: View {
                         showingDuplicateSessionAlert = true
                     } else {
                         // Create a new game session
+                        gameManager.startGame() // Track initial buy-in amount
                         if let newSession = gameManager.createGameSession() {
                             selectedGameSession = newSession
                         }
@@ -515,10 +577,109 @@ struct ContentView: View {
         } message: {
             Text(errorMessage)
         }
+        .alert("Reset All Sessions", isPresented: $showingResetSessionsAlert) {
+            Button("Reset All", role: .destructive) {
+                gameManager.clearAllGameSessions()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("This will permanently delete all game sessions. This action cannot be undone.")
+        }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
 
+    }
+}
+
+struct FavoriteGroupListItem: View {
+    let group: PlayerGroup
+    @ObservedObject var gameManager: GameManager
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Group icon and player count
+            ZStack {
+                Circle()
+                    .fill(isSelected ? Color.blue : Color.purple)
+                    .frame(width: 40, height: 40)
+
+                VStack(spacing: 2) {
+                    Image(systemName: "person.3.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white)
+
+                    Text("\(group.playerNames.count)")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                }
+            }
+
+            // Group details
+            VStack(alignment: .leading, spacing: 4) {
+                Text(group.name)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+
+                HStack {
+                    let displayNames = Array(group.playerNames.prefix(3))
+                    let remainingCount = max(0, group.playerNames.count - 3)
+
+                    Text(displayNames.joined(separator: ", "))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    if remainingCount > 0 {
+                        Text("+\(remainingCount) more")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .italic()
+                    }
+                }
+            }
+
+            Spacer()
+
+            // Selection indicator
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(.blue)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(isSelected ? Color.blue.opacity(0.1) : Color(.systemGray6))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+                )
+        )
+        .onTapGesture {
+            onSelect()
+        }
+        .contextMenu {
+            Button(action: onSelect) {
+                Label("Select Group", systemImage: "person.3.fill")
+            }
+
+            Button(action: onEdit) {
+                Label("Edit Group", systemImage: "pencil")
+            }
+
+            Button(action: onDelete) {
+                Label("Delete Group", systemImage: "trash")
+            }
+            .foregroundColor(.red)
+        }
     }
 }
 

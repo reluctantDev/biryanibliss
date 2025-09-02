@@ -56,6 +56,7 @@ class GameManager: ObservableObject {
     @Published var gameSessions: [GameSession] = []
 
     private var lastLoadedGroupName: String?
+    private var initialGameBuyIn: Double? // Track the buy-in amount when game starts
 
     var creditsPerPlayer: Double {
         return numberOfPlayers > 0 ? totalPotCredits / Double(numberOfPlayers) : 0.0
@@ -93,10 +94,32 @@ class GameManager: ObservableObject {
     }
     
     func addPlayer(name: String) {
-        let newPlayer = Player(name: name, buyIns: 1, totalCredits: creditsPerBuyIn, score: 0)
+        // Use initial game buy-in if game has started, otherwise use current buy-in
+        let buyInAmount = initialGameBuyIn ?? creditsPerBuyIn
+        let newPlayer = Player(name: name, buyIns: 1, totalCredits: buyInAmount, score: 0)
         players.append(newPlayer)
         numberOfPlayers = players.count
         updateTotalPotCredits()
+    }
+
+    func startGame() {
+        // Capture the initial buy-in amount when game starts
+        initialGameBuyIn = creditsPerBuyIn
+    }
+
+    func resetGame() {
+        // Reset the initial buy-in tracking when game is reset
+        initialGameBuyIn = nil
+        players.removeAll()
+        numberOfPlayers = 5
+        creditsPerBuyIn = 200.0
+        lastLoadedGroupName = nil
+        updateTotalPotCredits()
+    }
+
+    func getInitialBuyInAmount() -> Double {
+        // Return the initial buy-in if game has started, otherwise current buy-in
+        return initialGameBuyIn ?? creditsPerBuyIn
     }
     
     func removePlayer(at index: Int) {
@@ -134,13 +157,7 @@ class GameManager: ObservableObject {
         return players.reduce(0) { $0 + $1.totalCredits }
     }
     
-    func resetGame() {
-        players.removeAll()
-        numberOfPlayers = 5
-        creditsPerBuyIn = 200.0
-        lastLoadedGroupName = nil
-        updateTotalPotCredits()
-    }
+
 
     func startNewGameWithSameSettings() {
         // Keep the same settings but reset players to initial state
@@ -267,6 +284,11 @@ class GameManager: ObservableObject {
         }
     }
 
+    func clearAllGameSessions() {
+        gameSessions.removeAll()
+        saveGameSessions()
+    }
+
     func loadPlayersFromSession(_ session: GameSession) {
         players = session.players.map { player in
             Player(name: player.name, buyIns: player.buyIns, totalCredits: player.totalCredits, score: player.score)
@@ -290,10 +312,12 @@ class GameManager: ObservableObject {
     }
 
     func addPlayerToGame(name: String) {
+        // Use initial game buy-in if game has started, otherwise use current buy-in
+        let buyInAmount = initialGameBuyIn ?? creditsPerBuyIn
         let newPlayer = Player(
             name: name,
             buyIns: 1,
-            totalCredits: creditsPerBuyIn,
+            totalCredits: buyInAmount,
             score: 0
         )
 

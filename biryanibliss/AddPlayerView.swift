@@ -48,7 +48,8 @@ struct AddPlayerView: View {
                         Image(systemName: "info.circle.fill")
                             .foregroundColor(.blue)
 
-                        Text("Buy-in: $\(Int(gameManager.creditsPerBuyIn)) • Current players: \(gameManager.players.count)")
+                        let buyInAmount = gameManager.getInitialBuyInAmount()
+                        Text("Buy-in: \(Int(buyInAmount)) Credits • Current players: \(gameManager.players.count)")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
