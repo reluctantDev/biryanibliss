@@ -222,22 +222,46 @@ struct FinalCreditsCard: View {
 
             Spacer()
 
-            // Final Credits Input
-            HStack(spacing: 4) {
-                Text("Final:")
-                    .font(.caption)
+            // Final Credits Input with increment/decrement
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("Final Credits")
+                    .font(.caption2)
                     .foregroundColor(.secondary)
 
-                TextField("0", text: $finalCredits)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 60)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color(.systemBackground))
-                    .cornerRadius(6)
+                HStack(spacing: 8) {
+                    // Decrement button
+                    Button(action: {
+                        let currentValue = Double(finalCredits) ?? 0
+                        let newValue = max(0, currentValue - 50)
+                        finalCredits = String(Int(newValue))
+                    }) {
+                        Image(systemName: "minus.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                    }
+
+                    // Current value display
+                    Text(finalCredits.isEmpty ? "0" : finalCredits)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .frame(width: 50)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(4)
+
+                    // Increment button
+                    Button(action: {
+                        let currentValue = Double(finalCredits) ?? 0
+                        let newValue = currentValue + 50
+                        finalCredits = String(Int(newValue))
+                    }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+                }
 
                 Text("Credits")
                     .font(.caption2)

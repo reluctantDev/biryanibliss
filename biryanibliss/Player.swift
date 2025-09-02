@@ -188,17 +188,45 @@ class GameManager: ObservableObject {
         // First, try to load saved groups
         loadSavedFavoriteGroups()
 
-        // If no saved groups exist, create defaults and save them
-        if favoriteGroups.isEmpty {
-            favoriteGroups = [
-                PlayerGroup(name: "Weekend Warriors", playerNames: ["Morgan", "Riley", "Avery", "Quinn"]),
-                PlayerGroup(name: "Poker Pros", playerNames: ["Blake", "Cameron", "Drew", "Emery", "Finley", "Harper"])
-            ]
-            // Save the default groups so they persist
-            saveFavoriteGroups()
-        }
+        // Ensure both default groups exist, regardless of what was saved
+        ensureDefaultGroupsExist()
 
         favoriteGroupsLoaded = true
+    }
+
+    private func ensureDefaultGroupsExist() {
+        let defaultGroups = [
+            ("Weekend Warriors", ["Morgan", "Riley", "Avery", "Quinn"]),
+            ("Poker Pros", ["Blake", "Cameron", "Drew", "Emery", "Finley", "Harper"])
+        ]
+
+        var groupsAdded = false
+
+        for (defaultName, defaultPlayers) in defaultGroups {
+            let exists = favoriteGroups.contains { group in
+                group.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) == defaultName.lowercased()
+            }
+
+            if !exists {
+                let newGroup = PlayerGroup(name: defaultName, playerNames: defaultPlayers)
+                favoriteGroups.append(newGroup)
+                groupsAdded = true
+                print("Added missing default group: \(defaultName)")
+            }
+        }
+
+        // Sort to ensure consistent order: Weekend Warriors first, then Poker Pros
+        favoriteGroups.sort { group1, group2 in
+            if group1.name == "Weekend Warriors" { return true }
+            if group2.name == "Weekend Warriors" { return false }
+            if group1.name == "Poker Pros" { return true }
+            if group2.name == "Poker Pros" { return false }
+            return group1.name < group2.name
+        }
+
+        if groupsAdded {
+            saveFavoriteGroups()
+        }
     }
 
     // Debug method to clear all saved data (for testing)

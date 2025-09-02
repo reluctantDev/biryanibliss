@@ -379,8 +379,12 @@ struct ContentView: View {
                                 gameManager: gameManager,
                                 isSelected: selectedGroupIndex == index,
                                 onSelect: {
-                                    // Only load if not already selected
-                                    if selectedGroupIndex != index {
+                                    if selectedGroupIndex == index {
+                                        // Unselect if tapping the same group
+                                        selectedGroupIndex = nil
+                                        gameManager.resetGame() // Clear players when unselecting
+                                    } else {
+                                        // Select new group
                                         selectedGroupIndex = index
                                         gameManager.loadPlayersFromGroup(group)
                                     }
@@ -428,6 +432,25 @@ struct ContentView: View {
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             Spacer()
+
+                            // Clear Selection Button
+                            Button(action: {
+                                selectedGroupIndex = nil
+                                gameManager.resetGame()
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.caption)
+                                    Text("Clear")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color(.systemGray5))
+                                .cornerRadius(6)
+                            }
                         }
 
                         HStack {
