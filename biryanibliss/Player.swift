@@ -70,6 +70,8 @@ class GameManager: ObservableObject {
     init() {
         updateTotalPotCredits()
         loadDefaultFavoriteGroups()
+        removeDuplicateGroups() // Clean up any existing duplicates
+        debugFavoriteGroups() // Debug output
         loadGameSessions()
     }
 
@@ -186,20 +188,74 @@ class GameManager: ObservableObject {
         // First, try to load saved groups
         loadSavedFavoriteGroups()
 
-        // If no saved groups exist, create defaults
+        // If no saved groups exist, create defaults and save them
         if favoriteGroups.isEmpty {
             favoriteGroups = [
                 PlayerGroup(name: "Weekend Warriors", playerNames: ["Morgan", "Riley", "Avery", "Quinn"]),
                 PlayerGroup(name: "Poker Pros", playerNames: ["Blake", "Cameron", "Drew", "Emery", "Finley", "Harper"])
             ]
+            // Save the default groups so they persist
+            saveFavoriteGroups()
         }
 
         favoriteGroupsLoaded = true
     }
 
+    // Debug method to clear all saved data (for testing)
+    func clearAllSavedData() {
+        UserDefaults.standard.removeObject(forKey: "SavedFavoriteGroups")
+        UserDefaults.standard.removeObject(forKey: "SavedGameSessions")
+        favoriteGroups.removeAll()
+        gameSessions.removeAll()
+        favoriteGroupsLoaded = false
+    }
+
+    // Method to remove duplicate groups by name
+    func removeDuplicateGroups() {
+        var uniqueGroups: [PlayerGroup] = []
+        var seenNames: Set<String> = []
+
+        for group in favoriteGroups {
+            let normalizedName = group.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            if !seenNames.contains(normalizedName) {
+                uniqueGroups.append(group)
+                seenNames.insert(normalizedName)
+            } else {
+                print("Removing duplicate group: \(group.name)")
+            }
+        }
+
+        if uniqueGroups.count != favoriteGroups.count {
+            let removedCount = favoriteGroups.count - uniqueGroups.count
+            favoriteGroups = uniqueGroups
+            saveFavoriteGroups()
+            print("Removed \(removedCount) duplicate groups. Current groups: \(favoriteGroups.map { $0.name })")
+        }
+    }
+
+    // Debug method to print current favorite groups
+    func debugFavoriteGroups() {
+        print("=== Favorite Groups Debug ===")
+        print("Total groups: \(favoriteGroups.count)")
+        for (index, group) in favoriteGroups.enumerated() {
+            print("\(index + 1). \(group.name) (\(group.playerNames.count) players)")
+        }
+        print("Groups loaded flag: \(favoriteGroupsLoaded)")
+        print("=============================")
+    }
+
     func addFavoriteGroup(_ group: PlayerGroup) {
-        favoriteGroups.append(group)
-        saveFavoriteGroups()
+        // Check for duplicate names (case-insensitive)
+        let groupNameLower = group.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let isDuplicate = favoriteGroups.contains { existingGroup in
+            existingGroup.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) == groupNameLower
+        }
+
+        // Only add if not duplicate
+        if !isDuplicate {
+            favoriteGroups.append(group)
+            saveFavoriteGroups()
+        }
     }
 
     func removeFavoriteGroup(at index: Int) {
@@ -210,7 +266,16 @@ class GameManager: ObservableObject {
     }
 
     func updateFavoriteGroup(at index: Int, with updatedGroup: PlayerGroup) {
-        if index < favoriteGroups.count {
+        guard index < favoriteGroups.count else { return }
+
+        // Check for duplicate names (case-insensitive), excluding the current group being updated
+        let groupNameLower = updatedGroup.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let isDuplicate = favoriteGroups.enumerated().contains { (i, existingGroup) in
+            i != index && existingGroup.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) == groupNameLower
+        }
+
+        // Only update if not duplicate
+        if !isDuplicate {
             favoriteGroups[index] = updatedGroup
             saveFavoriteGroups()
         }
@@ -238,6 +303,22 @@ class GameManager: ObservableObject {
         let playerNames = players.map { $0.name }
         let newGroup = PlayerGroup(name: name, playerNames: playerNames)
         addFavoriteGroup(newGroup)
+    }
+
+    // Check if a group name already exists (case-insensitive)
+    func isGroupNameTaken(_ name: String) -> Bool {
+        let nameLower = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        return favoriteGroups.contains { existingGroup in
+            existingGroup.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) == nameLower
+        }
+    }
+
+    // Check if a group name is taken when updating (excludes the group being updated)
+    func isGroupNameTaken(_ name: String, excludingIndex: Int) -> Bool {
+        let nameLower = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        return favoriteGroups.enumerated().contains { (i, existingGroup) in
+            i != excludingIndex && existingGroup.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) == nameLower
+        }
     }
 
     // MARK: - Game Session Management

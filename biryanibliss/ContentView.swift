@@ -798,6 +798,16 @@ struct AddFavoriteGroupView: View {
 
                         TextField("Enter group name", text: $groupName)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(groupNameError != nil ? Color.red : Color.clear, lineWidth: 1)
+                            )
+
+                        if let error = groupNameError {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
                     }
                     .padding()
                     .background(Color(.systemBackground))
@@ -872,8 +882,20 @@ struct AddFavoriteGroupView: View {
     }
 
     private var canSave: Bool {
-        !groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        playerNames.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }.count >= 3
+        let trimmedName = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmedName.isEmpty &&
+               !gameManager.isGroupNameTaken(trimmedName) &&
+               playerNames.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }.count >= 3
+    }
+
+    private var groupNameError: String? {
+        let trimmedName = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedName.isEmpty {
+            return nil
+        } else if gameManager.isGroupNameTaken(trimmedName) {
+            return "A group with this name already exists"
+        }
+        return nil
     }
 
     private func saveGroup() {
@@ -926,6 +948,16 @@ struct EditFavoriteGroupView: View {
 
                         TextField("Enter group name", text: $groupName)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(groupNameError != nil ? Color.red : Color.clear, lineWidth: 1)
+                            )
+
+                        if let error = groupNameError {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
                     }
                     .padding()
                     .background(Color(.systemBackground))
@@ -1003,8 +1035,20 @@ struct EditFavoriteGroupView: View {
     }
 
     private var canSave: Bool {
-        !groupName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        playerNames.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }.count >= 3
+        let trimmedName = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmedName.isEmpty &&
+               !gameManager.isGroupNameTaken(trimmedName, excludingIndex: groupIndex) &&
+               playerNames.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }.count >= 3
+    }
+
+    private var groupNameError: String? {
+        let trimmedName = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedName.isEmpty {
+            return nil
+        } else if gameManager.isGroupNameTaken(trimmedName, excludingIndex: groupIndex) {
+            return "A group with this name already exists"
+        }
+        return nil
     }
 
     private func loadGroupData() {
