@@ -129,7 +129,7 @@ ChipTally is a comprehensive poker chip tracking and session management app desi
 - **Sessions auto-save** progress continuously
 
 ### **Group Limitations**
-- **3-8 players** supported per group
+- **3-12 players** supported per group
 - **Unique names** recommended for clarity
 - **Edit anytime** including default groups
 - **No cloud sync** - data stored locally

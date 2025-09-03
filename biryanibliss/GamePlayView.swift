@@ -448,7 +448,7 @@ struct PlayerGameCard: View {
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
 
-                        Text("$\(Int(player.totalCredits))")
+                        Text("\(Int(player.totalCredits))")
                             .font(.system(size: 16, weight: .bold, design: .rounded))
                             .foregroundColor(.green)
                     }
@@ -485,13 +485,14 @@ struct PlayerGameCard: View {
             Text("Enter new name for this player")
         }
         .alert("Add Buy-in", isPresented: $showingBuyInConfirmation) {
-            Button("Confirm", role: .destructive) {
+            Button("Confirm") {
                 onBuyInsChange(player.buyIns + 1)
             }
 
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("\(player.name) will purchase an additional buy-in. This action cannot be undone as real money is involved.")
+            let buyInAmount = Int(player.totalCredits / Double(player.buyIns))
+            Text("\(player.name) will receive an additional buy-in worth \(buyInAmount) credits.")
         }
     }
 }

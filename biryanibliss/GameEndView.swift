@@ -215,7 +215,7 @@ struct FinalCreditsCard: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
 
-                Text("Initial: \(initialCredits)")
+                Text("Buy-in: \(initialCredits)")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }

@@ -176,7 +176,7 @@ print("Session state: \(session.isCompleted ? "Completed" : "In Progress")")
 ## ⚠️ Known Limitations
 
 ### **Current Constraints**
-- **Group size**: Limited to 3-8 players
+- **Group size**: Limited to 3-12 players
 - **Session naming**: Auto-numbered only (Game 1, Game 2...)
 - **Data persistence**: Local storage only
 - **Platform**: iOS only

@@ -155,7 +155,7 @@ func removeFavoriteGroup(at index: Int) {
 ### **Edit Form Features**
 - **Pre-population**: Loads current group data automatically
 - **Dynamic fields**: Player list expands/contracts as needed
-- **Validation logic**: Ensures 3-8 players and valid group name
+- **Validation logic**: Ensures 3-12 players and valid group name
 - **State persistence**: Maintains form state during editing
 
 ### **Delete Functionality**

@@ -9,7 +9,7 @@ The Favorite Groups feature allows users to save and quickly load predefined pla
 ### **Quick Player Setup**
 - **One-tap loading** of complete player groups
 - **Pre-configured defaults** ready to use immediately
-- **Custom group creation** with 3-8 players
+- **Custom group creation** with 3-12 players
 - **Visual card interface** for easy selection
 
 ### **Default Groups Included**
@@ -32,7 +32,7 @@ The Favorite Groups feature allows users to save and quickly load predefined pla
 
 ### **Add/Edit Group Interface**
 - **Clean modal forms** for group creation/editing
-- **Dynamic player fields** (3-8 players supported)
+- **Dynamic player fields** (3-12 players supported)
 - **Real-time validation** ensuring minimum requirements
 - **Intuitive add/remove** player functionality
 

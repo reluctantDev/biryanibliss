@@ -62,7 +62,7 @@ Save players → Create game entry → Track progress → Review results
 ### **👥 Player Group Management**
 
 #### **Group Creation**
-- **Custom groups**: 3-8 players with custom names
+- **Custom groups**: 3-12 players with custom names
 - **Default groups**: Weekend Warriors (4), Poker Pros (6)
 - **Flexible sizing**: Support for various group sizes
 - **Validation**: Ensures minimum player requirements

@@ -97,7 +97,7 @@ class GameManager: ObservableObject {
     }
     
     func addPlayer(name: String) {
-        // Use initial game buy-in if game has started, otherwise use current buy-in
+        // Use game buy-in if game has started, otherwise use current buy-in
         let buyInAmount = initialGameBuyIn ?? creditsPerBuyIn
         let newPlayer = Player(name: name, buyIns: 1, totalCredits: buyInAmount, score: 0)
         players.append(newPlayer)
@@ -106,12 +106,12 @@ class GameManager: ObservableObject {
     }
 
     func startGame() {
-        // Capture the initial buy-in amount when game starts
+        // Capture the buy-in amount when game starts
         initialGameBuyIn = creditsPerBuyIn
     }
 
     func resetGame() {
-        // Reset the initial buy-in tracking when game is reset
+        // Reset the buy-in tracking when game is reset
         initialGameBuyIn = nil
         players.removeAll()
         numberOfPlayers = 5
@@ -121,7 +121,7 @@ class GameManager: ObservableObject {
     }
 
     func getInitialBuyInAmount() -> Double {
-        // Return the initial buy-in if game has started, otherwise current buy-in
+        // Return the buy-in if game has started, otherwise current buy-in
         return initialGameBuyIn ?? creditsPerBuyIn
     }
     
@@ -163,11 +163,11 @@ class GameManager: ObservableObject {
 
 
     func startNewGameWithSameSettings() {
-        // Keep the same settings but reset players to initial state
+        // Keep the same settings but reset players to starting state
         let currentBuyIn = creditsPerBuyIn
         let currentPlayerCount = numberOfPlayers
 
-        // Reset players to initial credits
+        // Reset players to starting credits
         for i in players.indices {
             players[i].totalCredits = currentBuyIn * Double(players[i].buyIns)
             players[i].score = 0
@@ -445,7 +445,7 @@ class GameManager: ObservableObject {
     }
 
     func addPlayerToGame(name: String) {
-        // Use initial game buy-in if game has started, otherwise use current buy-in
+        // Use game buy-in if game has started, otherwise use current buy-in
         let buyInAmount = initialGameBuyIn ?? creditsPerBuyIn
         let newPlayer = Player(
             name: name,

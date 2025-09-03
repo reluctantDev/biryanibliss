@@ -90,25 +90,16 @@ struct ContentView: View {
 
                         // Multi-select and delete controls (only show if there are sessions)
                         if !gameManager.gameSessions.isEmpty {
-                            HStack(spacing: 12) {
+                            HStack(spacing: 16) {
                                 if isSelectMode {
                                     // Delete Selected Button
                                     Button(action: {
                                         showingDeleteSelectedAlert = true
                                     }) {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "trash.fill")
-                                                .font(.subheadline)
-                                            Text("Delete (\(selectedSessionIds.count))")
-                                                .font(.subheadline)
-                                                .fontWeight(.semibold)
-                                        }
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(selectedSessionIds.isEmpty ? Color.gray : Color.red)
-                                        .cornerRadius(10)
-                                        .shadow(color: selectedSessionIds.isEmpty ? .clear : .red.opacity(0.3), radius: 4, x: 0, y: 2)
+                                        Text("Delete (\(selectedSessionIds.count))")
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(selectedSessionIds.isEmpty ? .gray : .red)
                                     }
                                     .disabled(selectedSessionIds.isEmpty)
 
@@ -118,17 +109,9 @@ struct ContentView: View {
                                         selectedSessionIds.removeAll()
                                     }) {
                                         Text("Cancel")
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
+                                            .font(.caption)
+                                            .fontWeight(.medium)
                                             .foregroundColor(.blue)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 8)
-                                            .background(Color.blue.opacity(0.15))
-                                            .cornerRadius(10)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 10)
-                                                    .stroke(Color.blue.opacity(0.3), lineWidth: 1)
-                                            )
                                     }
                                 } else {
                                     // Select Button
@@ -136,44 +119,20 @@ struct ContentView: View {
                                         isSelectMode = true
                                         selectedSessionIds.removeAll()
                                     }) {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "checkmark.circle")
-                                                .font(.subheadline)
-                                            Text("Select")
-                                                .font(.subheadline)
-                                                .fontWeight(.semibold)
-                                        }
-                                        .foregroundColor(.blue)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(Color.blue.opacity(0.15))
-                                        .cornerRadius(10)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .stroke(Color.blue.opacity(0.3), lineWidth: 1)
-                                        )
+                                        Text("Select")
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.blue)
                                     }
 
                                     // Delete All Button
                                     Button(action: {
                                         showingDeleteAllAlert = true
                                     }) {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "trash.circle.fill")
-                                                .font(.subheadline)
-                                            Text("Delete All")
-                                                .font(.subheadline)
-                                                .fontWeight(.semibold)
-                                        }
-                                        .foregroundColor(.red)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(Color.red.opacity(0.15))
-                                        .cornerRadius(10)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .stroke(Color.red.opacity(0.3), lineWidth: 1)
-                                        )
+                                        Text("Delete All")
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.red)
                                     }
                                 }
                             }
@@ -311,9 +270,9 @@ struct ContentView: View {
                     }
 
                     VStack(spacing: 16) {
-                        // Initial Buy-in Credits (Editable with increment/decrement)
+                        // Buy-in Credits (Editable with increment/decrement)
                         HStack {
-                            Text("Initial Buy-ins:")
+                            Text("Buy-in:")
                                 .font(.subheadline)
                                 .foregroundColor(.primary)
 
@@ -611,7 +570,7 @@ struct ContentView: View {
                         showingDuplicateSessionAlert = true
                     } else {
                         // Create a new game session
-                        gameManager.startGame() // Track initial buy-in amount
+                        gameManager.startGame() // Track buy-in amount
                         if let newSession = gameManager.createGameSession() {
                             selectedGameSession = newSession
                         }
@@ -972,7 +931,7 @@ struct AddFavoriteGroupView: View {
                             }
                         }
 
-                        if playerNames.count < 8 {
+                        if playerNames.count < 12 {
                             Button(action: {
                                 playerNames.append("")
                             }) {
@@ -1122,7 +1081,7 @@ struct EditFavoriteGroupView: View {
                             }
                         }
 
-                        if playerNames.count < 8 {
+                        if playerNames.count < 12 {
                             Button(action: {
                                 playerNames.append("")
                             }) {
@@ -1318,11 +1277,11 @@ struct GameSessionCard: View {
                 // Game info
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Initial Buy-in: $\(Int(session.creditsPerBuyIn))")
+                        Text("Buy-in: \(Int(session.creditsPerBuyIn))")
                             .font(.caption2)
                             .foregroundColor(.secondary)
 
-                        Text("Initial Pot: $\(Int(session.totalPotCredits))")
+                        Text("Pot: \(Int(session.totalPotCredits))")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
@@ -1452,13 +1411,13 @@ struct GameResultsView: View {
                                     .font(.title)
                                     .fontWeight(.bold)
 
-                                Text("$\(Int(winner.totalCredits))")
+                                Text("\(Int(winner.totalCredits))")
                                     .font(.title2)
                                     .foregroundColor(.yellow)
                                     .fontWeight(.semibold)
 
                                 let profit = winner.totalCredits - (Double(winner.buyIns) * session.creditsPerBuyIn)
-                                Text(profit >= 0 ? "+$\(Int(profit))" : "-$\(Int(abs(profit)))")
+                                Text(profit >= 0 ? "+\(Int(profit))" : "-\(Int(abs(profit)))")
                                     .font(.subheadline)
                                     .foregroundColor(profit >= 0 ? .green : .red)
                                     .fontWeight(.medium)
@@ -1493,9 +1452,9 @@ struct GameResultsView: View {
                             StatRow(label: "Completed", value: formattedCompletedDate)
                             StatRow(label: "Duration", value: gameDuration)
                             StatRow(label: "Players", value: "\(session.players.count)")
-                            StatRow(label: "Buy-in", value: "$\(Int(session.creditsPerBuyIn))")
-                            StatRow(label: "Initial Pot", value: "$\(Int(session.totalPotCredits))")
-                            StatRow(label: "Final Credits", value: "$\(Int(totalCreditsInPlay))")
+                            StatRow(label: "Buy-in", value: "\(Int(session.creditsPerBuyIn))")
+                            StatRow(label: "Pot", value: "\(Int(session.totalPotCredits))")
+                            StatRow(label: "Final Credits", value: "\(Int(totalCreditsInPlay))")
                         }
                         .padding()
                         .background(Color(.systemGray6))
@@ -1552,9 +1511,9 @@ struct PlayerResultCard: View {
 
     private var profitLossText: String {
         if profitLoss >= 0 {
-            return "+$\(Int(profitLoss))"
+            return "+\(Int(profitLoss))"
         } else {
-            return "-$\(Int(abs(profitLoss)))"
+            return "-\(Int(abs(profitLoss)))"
         }
     }
 
@@ -1583,7 +1542,7 @@ struct PlayerResultCard: View {
                     .font(.headline)
                     .fontWeight(.semibold)
 
-                Text("\(player.buyIns) buy-in\(player.buyIns == 1 ? "" : "s") • Invested: $\(Int(Double(player.buyIns) * session.creditsPerBuyIn))")
+                Text("\(player.buyIns) buy-in\(player.buyIns == 1 ? "" : "s") • Invested: \(Int(Double(player.buyIns) * session.creditsPerBuyIn))")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -1592,7 +1551,7 @@ struct PlayerResultCard: View {
 
             // Credits and Profit/Loss
             VStack(alignment: .trailing, spacing: 4) {
-                Text("$\(Int(player.totalCredits))")
+                Text("\(Int(player.totalCredits))")
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
