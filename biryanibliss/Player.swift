@@ -141,12 +141,18 @@ class GameManager: ObservableObject {
         if let index = players.firstIndex(where: { $0.id == playerId }) {
             players[index].buyIns = newBuyIns
             players[index].totalCredits = Double(newBuyIns) * creditsPerBuyIn
+
+            // Update the active session with new player data
+            updateActiveSessionPlayerData()
         }
     }
     
     func updatePlayerCredits(playerId: UUID, newCredits: Double) {
         if let index = players.firstIndex(where: { $0.id == playerId }) {
             players[index].totalCredits = newCredits
+
+            // Update the active session with new player data
+            updateActiveSessionPlayerData()
         }
     }
 
@@ -396,6 +402,26 @@ class GameManager: ObservableObject {
         }
     }
 
+    // Update active session with current player data (for buy-ins, credits changes during gameplay)
+    func updateActiveSessionPlayerData() {
+        // Find the active (non-completed) session that matches current players
+        let currentPlayerNames = Set(players.map { $0.name })
+
+        if let activeSessionIndex = gameSessions.firstIndex(where: { session in
+            !session.isCompleted && Set(session.players.map { $0.name }) == currentPlayerNames
+        }) {
+            // Update the session with current player data
+            gameSessions[activeSessionIndex].players = players.map { player in
+                Player(name: player.name, buyIns: player.buyIns, totalCredits: player.totalCredits, score: player.score)
+            }
+
+            // Update total pot credits to reflect actual credits in play
+            gameSessions[activeSessionIndex].totalPotCredits = actualCreditsInPlay
+
+            saveGameSessions()
+        }
+    }
+
     func completeGameSession(_ sessionId: UUID) {
         if let index = gameSessions.firstIndex(where: { $0.id == sessionId }) {
             gameSessions[index].isCompleted = true
@@ -457,6 +483,9 @@ class GameManager: ObservableObject {
         players.append(newPlayer)
         numberOfPlayers = players.count
         updateTotalPotCredits()
+
+        // Update the active session with new player data
+        updateActiveSessionPlayerData()
     }
 
     // MARK: - Data Persistence
