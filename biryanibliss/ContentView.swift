@@ -63,15 +63,10 @@ struct ContentView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 60, height: 60)
-                    
+
                     Text("Chip Ledger")
                         .font(.title)
                         .fontWeight(.bold)
-
-                    Text("Manage buy-ins and chips")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
                 }
                 .padding(.top)
 
