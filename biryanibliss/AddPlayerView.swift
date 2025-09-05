@@ -168,12 +168,8 @@ struct AddPlayerView: View {
             return
         }
 
-        // If validation passes, add the player manually
-        let buyInAmount = gameManager.getInitialBuyInAmount()
-        let newPlayer = Player(name: trimmedName, buyIns: 1, totalCredits: buyInAmount, score: 0)
-        gameManager.players.append(newPlayer)
-        gameManager.numberOfPlayers = gameManager.players.count
-        gameManager.updateTotalPotCredits()
+        // If validation passes, use the proper method that updates sessions
+        gameManager.addPlayerToGame(name: trimmedName)
 
         // Success - clear form and dismiss
         playerName = ""

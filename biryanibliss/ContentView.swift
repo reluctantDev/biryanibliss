@@ -1391,26 +1391,77 @@ struct GameSessionCard: View {
                     }
                 }
 
-                // Players preview
-                HStack {
-                    Image(systemName: "person.3.fill")
-                        .foregroundColor(.blue)
-                        .font(.caption)
+                // Group and Players preview
+                VStack(alignment: .leading, spacing: 2) {
+                    // Group name or placeholder indicator
+                    HStack {
+                        if let groupName = session.originalGroupName {
+                            Image(systemName: "person.3.fill")
+                                .foregroundColor(.purple)
+                                .font(.caption)
+                            Text(groupName)
+                                .font(.caption)
+                                .foregroundColor(.purple)
+                                .fontWeight(.medium)
+                        } else {
+                            Image(systemName: "person.crop.circle.dashed")
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                            Text("Placeholder Players")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
 
-                    let playerNames = session.players.prefix(3).map { $0.name }
-                    Text(playerNames.joined(separator: ", "))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-
-                    if session.players.count > 3 {
-                        Text("+\(session.players.count - 3) more")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .italic()
+                        Spacer()
                     }
 
-                    Spacer()
+                    // Players display with additional indicator
+                    HStack {
+                        Image(systemName: "person.2.fill")
+                            .foregroundColor(.blue)
+                            .font(.caption2)
+
+                        if let originalGroupPlayerNames = session.originalGroupPlayerNames {
+                            // Show group players + additional players
+                            let currentPlayerNames = session.players.map { $0.name }
+                            let additionalPlayers = currentPlayerNames.filter { !originalGroupPlayerNames.contains($0) }
+
+                            let displayNames = originalGroupPlayerNames.prefix(2)
+                            Text(displayNames.joined(separator: ", "))
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+
+                            if originalGroupPlayerNames.count > 2 {
+                                Text("+\(originalGroupPlayerNames.count - 2)")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            if !additionalPlayers.isEmpty {
+                                Text("+ \(additionalPlayers.count) added")
+                                    .font(.caption2)
+                                    .foregroundColor(.green)
+                                    .fontWeight(.medium)
+                            }
+                        } else {
+                            // Show placeholder players
+                            let playerNames = session.players.prefix(3).map { $0.name }
+                            Text(playerNames.joined(separator: ", "))
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+
+                            if session.players.count > 3 {
+                                Text("+\(session.players.count - 3) more")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                    .italic()
+                            }
+                        }
+
+                        Spacer()
+                    }
                 }
 
                 // Game info

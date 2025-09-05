@@ -37,13 +37,17 @@ struct GameSession: Identifiable, Codable {
     var creditsPerBuyIn: Double
     var isCompleted: Bool = false
     var completedDate: Date?
+    var originalGroupName: String? // Track which favorite group was used
+    var originalGroupPlayerNames: [String]? // Track original group players
 
-    init(name: String, players: [Player], totalPotCredits: Double, creditsPerBuyIn: Double) {
+    init(name: String, players: [Player], totalPotCredits: Double, creditsPerBuyIn: Double, originalGroupName: String? = nil, originalGroupPlayerNames: [String]? = nil) {
         self.name = name
         self.dateCreated = Date()
         self.players = players
         self.totalPotCredits = totalPotCredits
         self.creditsPerBuyIn = creditsPerBuyIn
+        self.originalGroupName = originalGroupName
+        self.originalGroupPlayerNames = originalGroupPlayerNames
     }
 }
 
@@ -58,6 +62,7 @@ class GameManager: ObservableObject {
     private var lastLoadedGroupName: String?
     private var initialGameBuyIn: Double? // Track the buy-in amount when game starts
     private var favoriteGroupsLoaded = false // Track if favorite groups have been loaded
+    private var currentActiveSessionId: UUID? // Track the currently active session
 
     var creditsPerPlayer: Double {
         return numberOfPlayers > 0 ? totalPotCredits / Double(numberOfPlayers) : 0.0
@@ -153,6 +158,7 @@ class GameManager: ObservableObject {
         numberOfPlayers = 5
         creditsPerBuyIn = 200.0
         lastLoadedGroupName = nil
+        currentActiveSessionId = nil // Clear active session tracking
         updateTotalPotCredits()
     }
 
@@ -444,14 +450,29 @@ class GameManager: ObservableObject {
             Player(name: player.name, buyIns: player.buyIns, totalCredits: player.totalCredits, score: player.score)
         }
 
+        // Get original group information if a group was loaded
+        var originalGroupName: String? = nil
+        var originalGroupPlayerNames: [String]? = nil
+
+        if let groupName = lastLoadedGroupName {
+            originalGroupName = groupName
+            // Find the group and get its original player names
+            if let group = favoriteGroups.first(where: { $0.name == groupName }) {
+                originalGroupPlayerNames = group.playerNames
+            }
+        }
+
         let session = GameSession(
             name: sessionName,
             players: sessionPlayers,
             totalPotCredits: totalPotCredits,
-            creditsPerBuyIn: creditsPerBuyIn
+            creditsPerBuyIn: creditsPerBuyIn,
+            originalGroupName: originalGroupName,
+            originalGroupPlayerNames: originalGroupPlayerNames
         )
 
         gameSessions.append(session)
+        currentActiveSessionId = session.id // Track this as the active session
         saveGameSessions()
         return session
     }
@@ -469,12 +490,10 @@ class GameManager: ObservableObject {
 
     // Update active session with current player data (for buy-ins, credits changes during gameplay)
     func updateActiveSessionPlayerData() {
-        // Find the active (non-completed) session that matches current players
-        let currentPlayerNames = Set(players.map { $0.name })
+        // Use the tracked active session ID if available
+        if let activeSessionId = currentActiveSessionId,
+           let activeSessionIndex = gameSessions.firstIndex(where: { $0.id == activeSessionId && !$0.isCompleted }) {
 
-        if let activeSessionIndex = gameSessions.firstIndex(where: { session in
-            !session.isCompleted && Set(session.players.map { $0.name }) == currentPlayerNames
-        }) {
             // Update the session with current player data
             gameSessions[activeSessionIndex].players = players.map { player in
                 Player(name: player.name, buyIns: player.buyIns, totalCredits: player.totalCredits, score: player.score)
@@ -484,6 +503,26 @@ class GameManager: ObservableObject {
             gameSessions[activeSessionIndex].totalPotCredits = actualCreditsInPlay
 
             saveGameSessions()
+        } else {
+            // Fallback: Find the active session that has the most matching players
+            let currentPlayerNames = Set(players.map { $0.name })
+
+            if let activeSessionIndex = gameSessions.firstIndex(where: { session in
+                !session.isCompleted && !Set(session.players.map { $0.name }).isDisjoint(with: currentPlayerNames)
+            }) {
+                // Update the session with current player data
+                gameSessions[activeSessionIndex].players = players.map { player in
+                    Player(name: player.name, buyIns: player.buyIns, totalCredits: player.totalCredits, score: player.score)
+                }
+
+                // Update total pot credits to reflect actual credits in play
+                gameSessions[activeSessionIndex].totalPotCredits = actualCreditsInPlay
+
+                // Update the tracked session ID
+                currentActiveSessionId = gameSessions[activeSessionIndex].id
+
+                saveGameSessions()
+            }
         }
     }
 
@@ -491,6 +530,11 @@ class GameManager: ObservableObject {
         if let index = gameSessions.firstIndex(where: { $0.id == sessionId }) {
             gameSessions[index].isCompleted = true
             gameSessions[index].completedDate = Date()
+
+            // Clear active session if this was the active one
+            if currentActiveSessionId == sessionId {
+                currentActiveSessionId = nil
+            }
         }
     }
 
@@ -520,6 +564,7 @@ class GameManager: ObservableObject {
         numberOfPlayers = players.count
         totalPotCredits = session.totalPotCredits
         creditsPerBuyIn = session.creditsPerBuyIn
+        currentActiveSessionId = session.id // Track this as the active session
         updateTotalPotCredits()
     }
 
