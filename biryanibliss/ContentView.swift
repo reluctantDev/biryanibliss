@@ -25,10 +25,7 @@ struct ContentView: View {
     }
     @State private var selectedGroupIndex: Int?
     @State private var selectedGameSession: GameSession?
-    @State private var showingDuplicateSessionAlert = false
-    @State private var existingActiveSession: GameSession?
     @State private var gameResultsSession: GameSession?
-    @State private var showingSessionLimitAlert = false
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
     @State private var showingSettings = false
@@ -37,20 +34,105 @@ struct ContentView: View {
     @State private var selectedSessionIds: Set<UUID> = []
     @State private var showingDeleteSelectedAlert = false
     @State private var showingDeleteAllAlert = false
-    @State private var showingPlayerConflictAlert = false
-    @State private var conflictingPlayers: [String] = []
-    @State private var conflictingGroupName = ""
-    @State private var playerConflictDetails: [String: String] = [:]
+    @State private var lastFailedGroupName: String? = nil // Track failed group selection
     @State private var showActiveGamesOnly = true
 
-    private var groupedConflictMessage: String {
-        // Group players by game name
+
+
+    private var filteredGameSessions: [GameSession] {
+        if showActiveGamesOnly {
+            return gameManager.gameSessions.filter { !$0.isCompleted }
+        } else {
+            return gameManager.gameSessions
+        }
+    }
+
+    // Check if current players have conflicts with active games or session limits
+    private var hasPlayerConflicts: Bool {
+        // Check session limit first
+        if !gameManager.canCreateNewSession {
+            return true
+        }
+
+        // Check if a group selection failed due to conflicts
+        if lastFailedGroupName != nil {
+            return true
+        }
+
+        if gameManager.players.isEmpty {
+            return false // No conflicts if no players loaded
+        }
+
+        let currentPlayerNames = gameManager.players.map { $0.name }
+        return gameManager.hasActiveSessionWithPlayers(currentPlayerNames)
+    }
+
+    // Get conflict message for display
+    private var conflictMessage: String {
+        // Check session limit first
+        if !gameManager.canCreateNewSession {
+            return "You have reached the maximum limit of 10 game sessions. Please delete an existing session before creating a new one."
+        }
+
+        // Check if a group selection failed due to conflicts
+        if let failedGroupName = lastFailedGroupName {
+            return getDetailedConflictMessage(for: failedGroupName)
+        }
+
+        if !hasPlayerConflicts {
+            return ""
+        }
+
+        let currentPlayerNames = gameManager.players.map { $0.name }
+        if let activeSession = gameManager.getActiveSessionWithPlayers(currentPlayerNames) {
+            return "These players are already in active game '\(activeSession.name)'. Click Start Game to resume that game, or select a different group."
+        } else {
+            return "One or more players are already in active games. Select a different group or wait for games to complete."
+        }
+    }
+
+    // Get appropriate text for Start Game button
+    private func getStartButtonText() -> String {
+        // Check session limit first
+        if !gameManager.canCreateNewSession {
+            return "Session Limit Reached"
+        }
+
+        if gameManager.players.isEmpty {
+            return "Start Game"
+        }
+
+        let currentPlayerNames = gameManager.players.map { $0.name }
+        if gameManager.hasActiveSessionWithPlayers(currentPlayerNames) {
+            return "Resume Game"
+        } else {
+            return "Start Game"
+        }
+    }
+
+    // Get detailed conflict message showing which players are in which games
+    private func getDetailedConflictMessage(for groupName: String) -> String {
+        // Find the group to get its player names
+        guard let group = gameManager.favoriteGroups.first(where: { $0.name == groupName }) else {
+            return "Cannot select '\(groupName)' because one or more players are already in active games."
+        }
+
+        // Group conflicting players by their active game sessions
         var gameGroups: [String: [String]] = [:]
-        for (player, game) in playerConflictDetails {
-            if gameGroups[game] == nil {
-                gameGroups[game] = []
+
+        for playerName in group.playerNames {
+            if gameManager.isPlayerNameInActiveSession(playerName) {
+                if let sessionName = gameManager.getActiveSessionNameForPlayer(playerName) {
+                    if gameGroups[sessionName] == nil {
+                        gameGroups[sessionName] = []
+                    }
+                    gameGroups[sessionName]?.append(playerName)
+                }
             }
-            gameGroups[game]?.append(player)
+        }
+
+        if gameGroups.isEmpty {
+            return "Cannot select '\(groupName)' because one or more players are already in active games."
         }
 
         // Sort games by start time (newest first)
@@ -65,6 +147,7 @@ struct ContentView: View {
             return date1 > date2 // Newest first (reverse chronological)
         }
 
+        // Build detailed conflict message
         let conflictDetails = sortedGames.map { game in
             let players = gameGroups[game] ?? []
             let playerList = players.joined(separator: ", ")
@@ -81,15 +164,7 @@ struct ContentView: View {
             }
         }.joined(separator: "\n")
 
-        return "Cannot load '\(conflictingGroupName)' because the following players are already in active games:\n\n\(conflictDetails)\n\nPlease wait for their games to finish or abandon those games first."
-    }
-
-    private var filteredGameSessions: [GameSession] {
-        if showActiveGamesOnly {
-            return gameManager.gameSessions.filter { !$0.isCompleted }
-        } else {
-            return gameManager.gameSessions
-        }
+        return "Cannot select '\(groupName)' because the following players are already in active games:\n\n\(conflictDetails)\n\nSelect a different group or wait for these games to complete."
     }
 
     var body: some View {
@@ -559,18 +634,19 @@ struct ContentView: View {
                                     if selectedGroupIndex == index {
                                         // Unselect if tapping the same group
                                         selectedGroupIndex = nil
+                                        lastFailedGroupName = nil // Clear failed group tracking
                                         gameManager.resetGame() // Clear players when unselecting
                                     } else {
                                         // Select new group - check for conflicts first
                                         let result = gameManager.loadPlayersFromGroup(group)
                                         if result.success {
                                             selectedGroupIndex = index
+                                            lastFailedGroupName = nil // Clear any previous failed group
                                         } else {
-                                            // Show conflict alert with detailed information
-                                            conflictingPlayers = result.conflictingPlayers
-                                            conflictingGroupName = group.name
-                                            playerConflictDetails = gameManager.getGroupConflictDetails(group)
-                                            showingPlayerConflictAlert = true
+                                            // Conflicts detected - don't select the group but show the conflict
+                                            selectedGroupIndex = nil
+                                            lastFailedGroupName = group.name // Track failed group for UI display
+                                            print("Cannot select group '\(group.name)' - players already in active games: \(result.conflictingPlayers)")
                                         }
                                     }
                                 },
@@ -603,82 +679,45 @@ struct ContentView: View {
                 .cornerRadius(20)
                 .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
 
-                // Selected Group Indicator (moved under Favorite Groups)
-                if let selectedIndex = selectedGroupIndex, selectedIndex < gameManager.favoriteGroups.count {
-                    let currentPlayerNames = gameManager.players.map { $0.name }
-                    let hasActiveSession = gameManager.hasActiveSessionWithPlayers(currentPlayerNames)
-                    let activeSession = gameManager.getActiveSessionWithPlayers(currentPlayerNames)
 
+
+                Spacer()
+
+                // Player Conflict Warning
+                if hasPlayerConflicts {
                     VStack(spacing: 8) {
                         HStack {
-                            Image(systemName: hasActiveSession ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
-                                .foregroundColor(hasActiveSession ? .orange : .green)
-                            Text("Selected Group: \(gameManager.favoriteGroups[selectedIndex].name)")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            Spacer()
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                                .font(.title3)
 
-                            // Clear Selection Button
-                            Button(action: {
-                                selectedGroupIndex = nil
-                                gameManager.resetGame()
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .font(.caption)
-                                    Text("Clear")
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                }
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color(.systemGray5))
-                                .cornerRadius(6)
-                            }
+                            Text("Player Conflict")
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.orange)
+
+                            Spacer()
                         }
 
                         HStack {
-                            Text("\(gameManager.players.count) players loaded")
-                                .font(.caption)
+                            Text(conflictMessage)
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
+                                .multilineTextAlignment(.leading)
+
                             Spacer()
-                        }
-
-                        if hasActiveSession, let activeSession = activeSession {
-                            HStack {
-                                Image(systemName: "play.circle.fill")
-                                    .foregroundColor(.orange)
-                                    .font(.caption)
-                                Text("Active game: \(activeSession.name)")
-                                    .font(.caption)
-                                    .foregroundColor(.orange)
-                                    .fontWeight(.medium)
-                                Spacer()
-                            }
-                        }
-
-                        // Debug info
-                        if !gameManager.players.isEmpty {
-                            HStack {
-                                Text("Players: \(gameManager.players.map { $0.name }.joined(separator: ", "))")
-                                    .font(.caption2)
-                                    .foregroundColor(.blue)
-                                Spacer()
-                            }
                         }
                     }
                     .padding()
-                    .background((hasActiveSession ? Color.orange : Color.green).opacity(0.1))
+                    .background(Color.orange.opacity(0.1))
                     .cornerRadius(12)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke((hasActiveSession ? Color.orange : Color.green).opacity(0.3), lineWidth: 1)
+                            .stroke(Color.orange.opacity(0.3), lineWidth: 1)
                     )
+                    .padding(.horizontal)
                 }
 
-                Spacer()
-                
                 // Start Game Button
                 Button(action: {
                     // If no players exist (no group selected), generate default players
@@ -690,41 +729,50 @@ struct ContentView: View {
 
                     // Check if we can create a new session (max 10 limit)
                     if !gameManager.canCreateNewSession {
-                        showingSessionLimitAlert = true
+                        // Session limit reached - this is already handled by button being disabled
                         return
                     }
 
                     // Check if there's already an active session with these players
                     let currentPlayerNames = gameManager.players.map { $0.name }
                     if gameManager.hasActiveSessionWithPlayers(currentPlayerNames) {
-                        existingActiveSession = gameManager.getActiveSessionWithPlayers(currentPlayerNames)
-                        showingDuplicateSessionAlert = true
+                        // Resume existing game instead of showing alert
+                        if let activeSession = gameManager.getActiveSessionWithPlayers(currentPlayerNames) {
+                            selectedGameSession = activeSession
+                            gameManager.loadPlayersFromSession(activeSession)
+                            selectedGroupIndex = nil // Clear group selection
+                            lastFailedGroupName = nil // Clear failed group tracking
+                            showingGame = true
+                        }
                     } else {
                         // Create a new game session
                         gameManager.startGame() // Track buy-in amount
                         if let newSession = gameManager.createGameSession() {
                             selectedGameSession = newSession
+                            selectedGroupIndex = nil // Clear group selection after successful game start
+                            lastFailedGroupName = nil // Clear failed group tracking
                             showingGame = true // Actually show the game!
                         }
                     }
                 }) {
                     HStack {
-                        Image(systemName: "play.circle.fill")
+                        Image(systemName: hasPlayerConflicts ? "exclamationmark.circle.fill" : "play.circle.fill")
                             .font(.title2)
-                        
-                        Text("Start Game")
+
+                        Text(getStartButtonText())
                             .font(.title2)
                             .fontWeight(.bold)
                     }
                     .foregroundColor(.white)
                     .padding()
                     .frame(maxWidth: .infinity)
-                    .background(Color.blue)
+                    .background(hasPlayerConflicts ? Color.gray : Color.blue)
                     .cornerRadius(25)
-                    .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
-                    .accessibilityLabel("Start Game")
-                    .accessibilityHint("Start a new poker game with current players")
+                    .shadow(color: hasPlayerConflicts ? Color.gray.opacity(0.3) : Color.blue.opacity(0.3), radius: 10, x: 0, y: 5)
+                    .accessibilityLabel(hasPlayerConflicts ? "Cannot Start Game" : "Start Game")
+                    .accessibilityHint(hasPlayerConflicts ? "Players are already in active games" : "Start a new poker game with current players")
                 }
+                .disabled(hasPlayerConflicts)
                 .padding(.horizontal)
                 .padding(.bottom)
                 }
@@ -759,28 +807,7 @@ struct ContentView: View {
                 .padding()
             }
         }
-        .alert("Active Game Found", isPresented: $showingDuplicateSessionAlert) {
-            Button("Resume Existing Game") {
-                if let activeSession = existingActiveSession {
-                    selectedGameSession = activeSession
-                    gameManager.loadPlayersFromSession(activeSession)
-                    showingGame = true
-                }
-            }
 
-            Button("Cancel", role: .cancel) {
-                existingActiveSession = nil
-            }
-        } message: {
-            if let activeSession = existingActiveSession {
-                Text("There's already an active game '\(activeSession.name)' with these players. You can resume the existing game or wait until it's completed to start a new one.")
-            }
-        }
-        .alert("Session Limit Reached", isPresented: $showingSessionLimitAlert) {
-            Button("OK") { }
-        } message: {
-            Text("You have reached the maximum limit of 10 game sessions. Please delete an existing session before creating a new one.")
-        }
         .alert("Error", isPresented: $showingErrorAlert) {
             Button("OK") { }
         } message: {
@@ -804,15 +831,7 @@ struct ContentView: View {
         } message: {
             Text("This will permanently delete all \(gameManager.gameSessions.count) game sessions. This action cannot be undone.")
         }
-        .alert("Players Already in Active Games", isPresented: $showingPlayerConflictAlert) {
-            Button("OK", role: .cancel) {
-                conflictingPlayers = []
-                conflictingGroupName = ""
-                playerConflictDetails = [:]
-            }
-        } message: {
-            Text(groupedConflictMessage)
-        }
+
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
