@@ -126,81 +126,92 @@ struct ContentView: View {
 
                 // Game Sessions Section (Moved to top)
                 VStack(alignment: .leading, spacing: 16) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "gamecontroller.fill")
-                            .foregroundColor(.green)
-                            .font(.headline)
+                    VStack(alignment: .leading, spacing: 8) {
+                        // First row: Game Sessions title
+                        HStack {
+                            Image(systemName: "gamecontroller.fill")
+                                .foregroundColor(.green)
+                                .font(.title2)
 
-                        Text("Game Sessions")
-                            .font(.headline)
-                            .fontWeight(.bold)
+                            Text("Game Sessions")
+                                .font(.title2)
+                                .fontWeight(.bold)
 
-                        Spacer()
+                            Spacer()
+                        }
 
-                        // All controls in one line when sessions exist
+                        // Second row: Controls (only show if there are sessions)
                         if !gameManager.gameSessions.isEmpty {
-                            HStack(alignment: .center, spacing: 12) {
-                                // Active Games Filter Toggle
-                                Button(action: {
-                                    showActiveGamesOnly.toggle()
-                                }) {
-                                    Text(showActiveGamesOnly ? "Active" : "All")
-                                        .font(.caption2)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(showActiveGamesOnly ? .blue : .secondary)
-                                        .frame(minWidth: 30)
+                            HStack {
+                                Spacer()
+
+                                HStack(alignment: .center, spacing: 16) {
+                                    // Active Games Filter Toggle
+                                    Button(action: {
+                                        showActiveGamesOnly.toggle()
+                                    }) {
+                                        let activeCount = gameManager.gameSessions.filter { !$0.isCompleted }.count
+                                        let totalCount = gameManager.gameSessions.count
+                                        let displayCount = showActiveGamesOnly ? activeCount : totalCount
+                                        let displayText = showActiveGamesOnly ? "Active" : "All"
+
+                                        Text("\(displayText) (\(displayCount))")
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(showActiveGamesOnly ? .blue : .secondary)
+                                    }
+
+                                    // Multi-select and delete controls
+                                    if isSelectMode {
+                                        // Delete Selected Button
+                                        Button(action: {
+                                            showingDeleteSelectedAlert = true
+                                        }) {
+                                            Text("Delete (\(selectedSessionIds.count))")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(selectedSessionIds.isEmpty ? .gray : .red)
+                                        }
+                                        .disabled(selectedSessionIds.isEmpty)
+
+                                        // Cancel Selection Button
+                                        Button(action: {
+                                            isSelectMode = false
+                                            selectedSessionIds.removeAll()
+                                        }) {
+                                            Text("Cancel")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.blue)
+                                        }
+                                    } else {
+                                        // Select Button
+                                        Button(action: {
+                                            isSelectMode = true
+                                            selectedSessionIds.removeAll()
+                                        }) {
+                                            Text("Select")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.blue)
+                                        }
+
+                                        // Delete All Button
+                                        Button(action: {
+                                            showingDeleteAllAlert = true
+                                        }) {
+                                            Text("Delete All")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.red)
+                                        }
+                                    }
                                 }
-
-                                // Multi-select and delete controls
-                                if isSelectMode {
-                                    // Delete Selected Button
-                                    Button(action: {
-                                        showingDeleteSelectedAlert = true
-                                    }) {
-                                        Text("Delete (\(selectedSessionIds.count))")
-                                            .font(.caption2)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(selectedSessionIds.isEmpty ? .gray : .red)
-                                            .frame(minWidth: 50)
-                                    }
-                                    .disabled(selectedSessionIds.isEmpty)
-
-                                    // Cancel Selection Button
-                                    Button(action: {
-                                        isSelectMode = false
-                                        selectedSessionIds.removeAll()
-                                    }) {
-                                        Text("Cancel")
-                                            .font(.caption2)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(.blue)
-                                            .frame(minWidth: 40)
-                                    }
-                                } else {
-                                    // Select Button
-                                    Button(action: {
-                                        isSelectMode = true
-                                        selectedSessionIds.removeAll()
-                                    }) {
-                                        Text("Select")
-                                            .font(.caption2)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(.blue)
-                                            .frame(minWidth: 40)
-                                    }
-
-                                    // Delete All Button
-                                    Button(action: {
-                                        showingDeleteAllAlert = true
-                                    }) {
-                                        Text("Delete All")
-                                            .font(.caption2)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(.red)
-                                            .frame(minWidth: 50)
-                                    }
-                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
                             }
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
                         }
                     }
 
