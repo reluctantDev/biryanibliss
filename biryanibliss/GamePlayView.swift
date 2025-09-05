@@ -210,10 +210,10 @@ struct GamePlayView: View {
                             showingRestartAlert = true
                         }) {
                             HStack(spacing: 4) {
-                                Image(systemName: "arrow.clockwise.circle.fill")
+                                Image(systemName: "xmark.circle.fill")
                                     .font(.subheadline)
 
-                                Text("Restart")
+                                Text("Abandon")
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                             }
@@ -221,7 +221,7 @@ struct GamePlayView: View {
                             .padding(.vertical, 8)
                             .padding(.horizontal, 12)
                             .frame(maxWidth: .infinity)
-                            .background(Color.orange)
+                            .background(Color.indigo)
                             .cornerRadius(16)
                         }
                     }
@@ -270,13 +270,13 @@ struct GamePlayView: View {
                 dismiss()
             })
         }
-        .alert("Restart Game", isPresented: $showingRestartAlert) {
-            Button("Restart", role: .destructive) {
-                // Update session before resetting
+        .alert("Abandon Game", isPresented: $showingRestartAlert) {
+            Button("Abandon", role: .destructive) {
+                // Delete the session since user is abandoning the game
                 if let session = gameSession {
-                    var updatedSession = session
-                    updatedSession.players = gameManager.players
-                    gameManager.updateGameSession(updatedSession)
+                    if let index = gameManager.gameSessions.firstIndex(where: { $0.id == session.id }) {
+                        gameManager.deleteGameSession(at: index)
+                    }
                 }
 
                 gameManager.resetGame()
@@ -284,7 +284,7 @@ struct GamePlayView: View {
             }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("This will reset the entire game and return to setup. Are you sure?")
+            Text("This will abandon the current game and return to setup. The session will be permanently deleted. Are you sure?")
         }
         .alert("Change Buy-in Amount", isPresented: $showingBuyInConfirmation) {
             TextField("Buy-in amount", value: $pendingBuyInAmount, format: .number)
