@@ -41,7 +41,7 @@ struct ContentView: View {
     @State private var conflictingPlayers: [String] = []
     @State private var conflictingGroupName = ""
     @State private var playerConflictDetails: [String: String] = [:]
-    @State private var showActiveGamesOnly = false
+    @State private var showActiveGamesOnly = true
 
     private var groupedConflictMessage: String {
         // Group players by game name
@@ -474,6 +474,51 @@ struct ContentView: View {
                         }
                         .padding()
                         .background(Color(.systemGray6))
+                        .cornerRadius(12)
+
+                        // Selected Group Indicator
+                        HStack {
+                            Text("Players:")
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+
+                            Spacer()
+
+                            if let selectedIndex = selectedGroupIndex, selectedIndex < gameManager.favoriteGroups.count {
+                                let selectedGroup = gameManager.favoriteGroups[selectedIndex]
+                                HStack(spacing: 8) {
+                                    Image(systemName: "person.3.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+
+                                    Text(selectedGroup.name)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.blue)
+
+                                    Text("(\(selectedGroup.playerNames.count) players)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            } else {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "person.crop.circle.dashed")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+
+                                    Text("Placeholder Players")
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.secondary)
+
+                                    Text("(\(gameManager.numberOfPlayers) players)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(Color(.systemBackground))
                         .cornerRadius(12)
                     }
                 }
