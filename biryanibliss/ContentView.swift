@@ -27,7 +27,7 @@ struct ContentView: View {
     @State private var selectedGameSession: GameSession?
     @State private var showingDuplicateSessionAlert = false
     @State private var existingActiveSession: GameSession?
-    @State private var showingGameResults = false
+    @State private var gameResultsSession: GameSession?
     @State private var showingSessionLimitAlert = false
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
@@ -165,10 +165,10 @@ struct ContentView: View {
                                     session: session,
                                     onTap: {
                                         if !isSelectMode {
-                                            selectedGameSession = session
                                             if session.isCompleted {
-                                                showingGameResults = true
+                                                gameResultsSession = session
                                             } else {
+                                                selectedGameSession = session
                                                 gameManager.loadPlayersFromSession(session)
                                                 showingGame = true
                                             }
@@ -205,10 +205,10 @@ struct ContentView: View {
                                                 session: session,
                                                 onTap: {
                                                     if !isSelectMode {
-                                                        selectedGameSession = session
                                                         if session.isCompleted {
-                                                            showingGameResults = true
+                                                            gameResultsSession = session
                                                         } else {
+                                                            selectedGameSession = session
                                                             gameManager.loadPlayersFromSession(session)
                                                             showingGame = true
                                                         }
@@ -599,10 +599,8 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showingGame) {
             GamePlayView(gameManager: gameManager, gameSession: selectedGameSession)
         }
-        .sheet(isPresented: $showingGameResults) {
-            if let session = selectedGameSession {
-                GameResultsView(session: session)
-            }
+        .sheet(item: $gameResultsSession) { session in
+            GameResultsView(session: session)
         }
         .sheet(isPresented: $showingAddGroup) {
             AddFavoriteGroupView(gameManager: gameManager, isPresented: $showingAddGroup)
@@ -1363,12 +1361,6 @@ struct GameResultsView: View {
                 VStack(spacing: 24) {
                     // Header
                     VStack(spacing: 16) {
-                        // ChipTally logo
-                        Image("chiptally_logo")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 50, height: 50)
-
                         Image(systemName: "trophy.fill")
                             .font(.system(size: 60))
                             .foregroundColor(.yellow)
@@ -1385,42 +1377,24 @@ struct GameResultsView: View {
 
                     // Winner Section
                     if let winner = winner {
-                        VStack(spacing: 12) {
+                        VStack(spacing: 8) {
                             Text("🏆 Biggest Winner")
-                                .font(.title2)
+                                .font(.headline)
                                 .fontWeight(.bold)
                                 .foregroundColor(.yellow)
 
-                            VStack(spacing: 8) {
-                                Circle()
-                                    .fill(Color.yellow.opacity(0.2))
-                                    .frame(width: 80, height: 80)
-                                    .overlay(
-                                        Text(String(winner.name.prefix(1)).uppercased())
-                                            .font(.largeTitle)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(.yellow)
-                                    )
+                            Text(winner.name)
+                                .font(.headline)
+                                .fontWeight(.bold)
 
-                                Text(winner.name)
-                                    .font(.title)
-                                    .fontWeight(.bold)
-
-                                Text("\(Int(winner.totalCredits))")
-                                    .font(.title2)
-                                    .foregroundColor(.yellow)
-                                    .fontWeight(.semibold)
-
-                                let profit = winner.totalCredits - (Double(winner.buyIns) * session.creditsPerBuyIn)
-                                Text(profit >= 0 ? "+\(Int(profit))" : "-\(Int(abs(profit)))")
-                                    .font(.subheadline)
-                                    .foregroundColor(profit >= 0 ? .green : .red)
-                                    .fontWeight(.medium)
-                            }
+                            Text("\(Int(winner.totalCredits)) credits")
+                                .font(.subheadline)
+                                .foregroundColor(.yellow)
+                                .fontWeight(.semibold)
                         }
-                        .padding()
+                        .padding(12)
                         .background(Color.yellow.opacity(0.1))
-                        .cornerRadius(16)
+                        .cornerRadius(12)
                     }
 
                     // Final Standings
@@ -1446,10 +1420,18 @@ struct GameResultsView: View {
                             StatRow(label: "Started", value: formattedDate)
                             StatRow(label: "Completed", value: formattedCompletedDate)
                             StatRow(label: "Duration", value: gameDuration)
+
+                            Divider()
+
                             StatRow(label: "Players", value: "\(session.players.count)")
-                            StatRow(label: "Buy-in", value: "\(Int(session.creditsPerBuyIn))")
-                            StatRow(label: "Pot", value: "\(Int(session.totalPotCredits))")
-                            StatRow(label: "Final Credits", value: "\(Int(totalCreditsInPlay))")
+                            StatRow(label: "Buy-in Amount", value: "\(Int(session.creditsPerBuyIn)) credits")
+                            StatRow(label: "Initial Pot", value: "\(Int(session.creditsPerBuyIn * Double(session.players.count))) credits")
+                            StatRow(label: "Final Pot", value: "\(Int(totalCreditsInPlay)) credits")
+
+                            let potDifference = totalCreditsInPlay - (session.creditsPerBuyIn * Double(session.players.count))
+                            if abs(potDifference) > 0.01 {
+                                StatRow(label: "Pot Change", value: potDifference >= 0 ? "+\(Int(potDifference))" : "\(Int(potDifference))")
+                            }
                         }
                         .padding()
                         .background(Color(.systemGray6))
@@ -1537,9 +1519,13 @@ struct PlayerResultCard: View {
                     .font(.headline)
                     .fontWeight(.semibold)
 
-                Text("\(player.buyIns) buy-in\(player.buyIns == 1 ? "" : "s") • Invested: \(Int(Double(player.buyIns) * session.creditsPerBuyIn))")
+                Text("\(player.buyIns) buy-in\(player.buyIns == 1 ? "" : "s") • Invested: \(Int(Double(player.buyIns) * session.creditsPerBuyIn)) credits")
                     .font(.caption)
                     .foregroundColor(.secondary)
+
+                Text("Final: \(Int(player.totalCredits)) credits")
+                    .font(.caption)
+                    .foregroundColor(.primary)
             }
 
             Spacer()

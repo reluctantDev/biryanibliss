@@ -159,29 +159,29 @@ struct AddPlayerView: View {
     
     private func addPlayer() {
         let trimmedName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
-        
+
         // Validation
         if trimmedName.isEmpty {
             alertMessage = "Please enter a player name"
             showingAlert = true
             return
         }
-        
+
         if trimmedName.count < 2 {
             alertMessage = "Player name must be at least 2 characters long"
             showingAlert = true
             return
         }
-        
+
         // Check for duplicate names
         if gameManager.players.contains(where: { $0.name.lowercased() == trimmedName.lowercased() }) {
             alertMessage = "A player with this name already exists"
             showingAlert = true
             return
         }
-        
+
         // Allow adding players during game (no strict limit check for mid-game additions)
-        
+
         // Add the player
         gameManager.addPlayer(name: trimmedName)
         playerName = ""

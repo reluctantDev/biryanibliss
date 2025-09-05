@@ -96,24 +96,24 @@ struct ValidationTests {
     
     @Test func testNameValidation() async throws {
         let gameManager = GameManager()
-        
+
         // Test normal names
         gameManager.addPlayer(name: "Normal Player")
         #expect(gameManager.players[0].name == "Normal Player")
-        
+
         // Test empty name
         gameManager.addPlayer(name: "")
         #expect(gameManager.players[1].name == "")
-        
+
         // Test very long name
         let longName = String(repeating: "A", count: 100)
         gameManager.addPlayer(name: longName)
         #expect(gameManager.players[2].name == longName)
-        
+
         // Test special characters
         gameManager.addPlayer(name: "Player@#$%")
         #expect(gameManager.players[3].name == "Player@#$%")
-        
+
         // Test unicode characters
         gameManager.addPlayer(name: "玩家1")
         #expect(gameManager.players[4].name == "玩家1")
