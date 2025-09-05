@@ -41,6 +41,7 @@ struct ContentView: View {
     @State private var conflictingPlayers: [String] = []
     @State private var conflictingGroupName = ""
     @State private var playerConflictDetails: [String: String] = [:]
+    @State private var showActiveGamesOnly = false
 
     private var groupedConflictMessage: String {
         // Group players by game name
@@ -67,10 +68,28 @@ struct ContentView: View {
         let conflictDetails = sortedGames.map { game in
             let players = gameGroups[game] ?? []
             let playerList = players.joined(separator: ", ")
-            return "• \(game): \(playerList)"
+
+            // Add start time for context
+            if let session = gameManager.gameSessions.first(where: { $0.name == game }) {
+                let formatter = DateFormatter()
+                formatter.dateStyle = .none
+                formatter.timeStyle = .short
+                let timeString = formatter.string(from: session.dateCreated)
+                return "• \(game) (started \(timeString)): \(playerList)"
+            } else {
+                return "• \(game): \(playerList)"
+            }
         }.joined(separator: "\n")
 
         return "Cannot load '\(conflictingGroupName)' because the following players are already in active games:\n\n\(conflictDetails)\n\nPlease wait for their games to finish or abandon those games first."
+    }
+
+    private var filteredGameSessions: [GameSession] {
+        if showActiveGamesOnly {
+            return gameManager.gameSessions.filter { !$0.isCompleted }
+        } else {
+            return gameManager.gameSessions
+        }
     }
 
     var body: some View {
@@ -107,29 +126,42 @@ struct ContentView: View {
 
                 // Game Sessions Section (Moved to top)
                 VStack(alignment: .leading, spacing: 16) {
-                    HStack {
+                    HStack(spacing: 12) {
                         Image(systemName: "gamecontroller.fill")
                             .foregroundColor(.green)
-                            .font(.title2)
+                            .font(.headline)
 
                         Text("Game Sessions")
-                            .font(.title2)
+                            .font(.headline)
                             .fontWeight(.bold)
 
                         Spacer()
 
-                        // Multi-select and delete controls (only show if there are sessions)
+                        // All controls in one line when sessions exist
                         if !gameManager.gameSessions.isEmpty {
-                            HStack(spacing: 16) {
+                            HStack(alignment: .center, spacing: 12) {
+                                // Active Games Filter Toggle
+                                Button(action: {
+                                    showActiveGamesOnly.toggle()
+                                }) {
+                                    Text(showActiveGamesOnly ? "Active" : "All")
+                                        .font(.caption2)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(showActiveGamesOnly ? .blue : .secondary)
+                                        .frame(minWidth: 30)
+                                }
+
+                                // Multi-select and delete controls
                                 if isSelectMode {
                                     // Delete Selected Button
                                     Button(action: {
                                         showingDeleteSelectedAlert = true
                                     }) {
                                         Text("Delete (\(selectedSessionIds.count))")
-                                            .font(.caption)
+                                            .font(.caption2)
                                             .fontWeight(.medium)
                                             .foregroundColor(selectedSessionIds.isEmpty ? .gray : .red)
+                                            .frame(minWidth: 50)
                                     }
                                     .disabled(selectedSessionIds.isEmpty)
 
@@ -139,9 +171,10 @@ struct ContentView: View {
                                         selectedSessionIds.removeAll()
                                     }) {
                                         Text("Cancel")
-                                            .font(.caption)
+                                            .font(.caption2)
                                             .fontWeight(.medium)
                                             .foregroundColor(.blue)
+                                            .frame(minWidth: 40)
                                     }
                                 } else {
                                     // Select Button
@@ -150,9 +183,10 @@ struct ContentView: View {
                                         selectedSessionIds.removeAll()
                                     }) {
                                         Text("Select")
-                                            .font(.caption)
+                                            .font(.caption2)
                                             .fontWeight(.medium)
                                             .foregroundColor(.blue)
+                                            .frame(minWidth: 40)
                                     }
 
                                     // Delete All Button
@@ -160,26 +194,27 @@ struct ContentView: View {
                                         showingDeleteAllAlert = true
                                     }) {
                                         Text("Delete All")
-                                            .font(.caption)
+                                            .font(.caption2)
                                             .fontWeight(.medium)
                                             .foregroundColor(.red)
+                                            .frame(minWidth: 50)
                                     }
                                 }
                             }
                         }
                     }
 
-                    if gameManager.gameSessions.isEmpty {
+                    if filteredGameSessions.isEmpty {
                         VStack(spacing: 8) {
-                            Image(systemName: "gamecontroller")
+                            Image(systemName: showActiveGamesOnly ? "clock" : "gamecontroller")
                                 .font(.system(size: 40))
                                 .foregroundColor(.gray)
 
-                            Text("No game sessions yet")
+                            Text(showActiveGamesOnly ? "No active games" : "No game sessions yet")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
 
-                            Text("Click 'Start Game' to create your first session")
+                            Text(showActiveGamesOnly ? "All games have been completed" : "Click 'Start Game' to create your first session")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
@@ -188,7 +223,7 @@ struct ContentView: View {
                         .padding(.vertical, 20)
                     } else {
                         // Scrollable sessions: 2 games visible, rest scrollable (hard limit 10 total)
-                        let recentSessions = Array(gameManager.gameSessions.reversed())
+                        let recentSessions = Array(filteredGameSessions.reversed())
                         let visibleSessions = Array(recentSessions.prefix(2))
                         let hasMoreSessions = recentSessions.count > 2
 
