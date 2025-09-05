@@ -398,7 +398,7 @@ struct ContentView: View {
 
                         // Number of Players
                         HStack {
-                            Text("Number of Players:")
+                            Text("# of Players:")
                                 .font(.subheadline)
                                 .foregroundColor(.primary)
 
