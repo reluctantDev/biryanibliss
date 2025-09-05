@@ -97,11 +97,15 @@ struct GameLogicTests {
     
     @Test func testPlayerRanking() async throws {
         let gameManager = GameManager()
-        
+
         // Add players with different credit amounts
-        gameManager.addPlayer(name: "Player 1")
-        gameManager.addPlayer(name: "Player 2")
-        gameManager.addPlayer(name: "Player 3")
+        let (success1, _) = gameManager.addPlayer(name: "Player 1")
+        let (success2, _) = gameManager.addPlayer(name: "Player 2")
+        let (success3, _) = gameManager.addPlayer(name: "Player 3")
+
+        #expect(success1 == true)
+        #expect(success2 == true)
+        #expect(success3 == true)
         
         gameManager.updatePlayerCredits(playerId: gameManager.players[0].id, newCredits: 300.0)
         gameManager.updatePlayerCredits(playerId: gameManager.players[1].id, newCredits: 500.0)
@@ -141,12 +145,14 @@ struct GameLogicTests {
 
         // Test with zero credits
         gameManager.creditsPerBuyIn = 0.0
-        gameManager.addPlayer(name: "Zero Player")
+        let (success1, _) = gameManager.addPlayer(name: "Zero Player")
+        #expect(success1 == true)
         #expect(gameManager.players[0].totalCredits == 0.0)
 
         // Test with very large numbers
         gameManager.creditsPerBuyIn = 999999.0
-        gameManager.addPlayer(name: "Rich Player")
+        let (success2, _) = gameManager.addPlayer(name: "Rich Player")
+        #expect(success2 == true)
         #expect(gameManager.players[1].totalCredits == 999999.0)
 
         // Test removing all players
@@ -243,9 +249,13 @@ struct GameLogicTests {
         let gameManager = GameManager()
 
         // Add some players
-        gameManager.addPlayer(name: "Test Player 1")
-        gameManager.addPlayer(name: "Test Player 2")
-        gameManager.addPlayer(name: "Test Player 3")
+        let (success1, _) = gameManager.addPlayer(name: "Test Player 1")
+        let (success2, _) = gameManager.addPlayer(name: "Test Player 2")
+        let (success3, _) = gameManager.addPlayer(name: "Test Player 3")
+
+        #expect(success1 == true)
+        #expect(success2 == true)
+        #expect(success3 == true)
 
         let initialGroupCount = gameManager.favoriteGroups.count
 

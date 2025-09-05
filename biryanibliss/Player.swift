@@ -96,13 +96,21 @@ class GameManager: ObservableObject {
         }
     }
     
-    func addPlayer(name: String) {
+    func addPlayer(name: String) -> (success: Bool, reason: String?) {
+        // Validate the player name first
+        let validation = canAddPlayerName(name)
+        if !validation.canAdd {
+            return (false, validation.reason)
+        }
+
         // Use game buy-in if game has started, otherwise use current buy-in
         let buyInAmount = initialGameBuyIn ?? creditsPerBuyIn
         let newPlayer = Player(name: name, buyIns: 1, totalCredits: buyInAmount, score: 0)
         players.append(newPlayer)
         numberOfPlayers = players.count
         updateTotalPotCredits()
+
+        return (true, nil)
     }
 
     func startGame() {
@@ -323,10 +331,23 @@ class GameManager: ObservableObject {
         }
     }
 
-    func loadPlayersFromGroup(_ group: PlayerGroup) {
+    func loadPlayersFromGroup(_ group: PlayerGroup) -> (success: Bool, conflictingPlayers: [String]) {
         // Prevent loading the same group multiple times
         if lastLoadedGroupName == group.name && !players.isEmpty {
-            return
+            return (true, [])
+        }
+
+        // Check for players already in active sessions
+        var conflictingPlayers: [String] = []
+        for playerName in group.playerNames {
+            if isPlayerNameInActiveSession(playerName) {
+                conflictingPlayers.append(playerName)
+            }
+        }
+
+        // If there are conflicts, don't load the group
+        if !conflictingPlayers.isEmpty {
+            return (false, conflictingPlayers)
         }
 
         players.removeAll()
@@ -339,6 +360,7 @@ class GameManager: ObservableObject {
         }
 
         updateTotalPotCredits()
+        return (true, [])
     }
 
     func saveCurrentPlayersAsGroup(name: String) {
@@ -486,6 +508,62 @@ class GameManager: ObservableObject {
 
         // Update the active session with new player data
         updateActiveSessionPlayerData()
+    }
+
+    // MARK: - Player Uniqueness Validation
+
+    /// Check if a player name is already being used in any active (in-progress) game session
+    func isPlayerNameInActiveSession(_ name: String) -> Bool {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        return gameSessions.contains { session in
+            !session.isCompleted && session.players.contains { player in
+                player.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == trimmedName
+            }
+        }
+    }
+
+    /// Get the name of the active session where a player is already playing
+    func getActiveSessionNameForPlayer(_ name: String) -> String? {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        let activeSession = gameSessions.first { session in
+            !session.isCompleted && session.players.contains { player in
+                player.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == trimmedName
+            }
+        }
+
+        return activeSession?.name
+    }
+
+    /// Check if a player name can be added to the current game (not in current game or other active sessions)
+    func canAddPlayerName(_ name: String) -> (canAdd: Bool, reason: String?) {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Basic validation
+        if trimmedName.isEmpty {
+            return (false, "Please enter a player name")
+        }
+
+        if trimmedName.count < 2 {
+            return (false, "Player name must be at least 2 characters long")
+        }
+
+        // Check for duplicate in current game
+        if players.contains(where: { $0.name.lowercased() == trimmedName.lowercased() }) {
+            return (false, "A player with this name already exists in the current game")
+        }
+
+        // Check for player in other active sessions
+        if isPlayerNameInActiveSession(trimmedName) {
+            if let sessionName = getActiveSessionNameForPlayer(trimmedName) {
+                return (false, "\(trimmedName) is already playing in '\(sessionName)'. A player can only be in one active game at a time.")
+            } else {
+                return (false, "\(trimmedName) is already playing in another active game")
+            }
+        }
+
+        return (true, nil)
     }
 
     // MARK: - Data Persistence

@@ -160,30 +160,22 @@ struct AddPlayerView: View {
     private func addPlayer() {
         let trimmedName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Validation
-        if trimmedName.isEmpty {
-            alertMessage = "Please enter a player name"
+        // Use the validation function directly to avoid function resolution issues
+        let validation = gameManager.canAddPlayerName(trimmedName)
+        if !validation.canAdd {
+            alertMessage = validation.reason ?? "Cannot add player"
             showingAlert = true
             return
         }
 
-        if trimmedName.count < 2 {
-            alertMessage = "Player name must be at least 2 characters long"
-            showingAlert = true
-            return
-        }
+        // If validation passes, add the player manually
+        let buyInAmount = gameManager.getInitialBuyInAmount()
+        let newPlayer = Player(name: trimmedName, buyIns: 1, totalCredits: buyInAmount, score: 0)
+        gameManager.players.append(newPlayer)
+        gameManager.numberOfPlayers = gameManager.players.count
+        gameManager.updateTotalPotCredits()
 
-        // Check for duplicate names
-        if gameManager.players.contains(where: { $0.name.lowercased() == trimmedName.lowercased() }) {
-            alertMessage = "A player with this name already exists"
-            showingAlert = true
-            return
-        }
-
-        // Allow adding players during game (no strict limit check for mid-game additions)
-
-        // Add the player
-        gameManager.addPlayer(name: trimmedName)
+        // Success - clear form and dismiss
         playerName = ""
         isPresented = false
     }

@@ -98,25 +98,144 @@ struct ValidationTests {
         let gameManager = GameManager()
 
         // Test normal names
-        gameManager.addPlayer(name: "Normal Player")
+        let (success1, _) = gameManager.addPlayer(name: "Normal Player")
+        #expect(success1 == true)
         #expect(gameManager.players[0].name == "Normal Player")
 
         // Test empty name
-        gameManager.addPlayer(name: "")
-        #expect(gameManager.players[1].name == "")
+        let (success2, reason2) = gameManager.addPlayer(name: "")
+        #expect(success2 == false)
+        #expect(reason2?.contains("Please enter a player name") == true)
+
+        // Test short name
+        let (success3, reason3) = gameManager.addPlayer(name: "A")
+        #expect(success3 == false)
+        #expect(reason3?.contains("must be at least 2 characters") == true)
 
         // Test very long name
         let longName = String(repeating: "A", count: 100)
-        gameManager.addPlayer(name: longName)
-        #expect(gameManager.players[2].name == longName)
+        let (success4, _) = gameManager.addPlayer(name: longName)
+        #expect(success4 == true)
+        #expect(gameManager.players[1].name == longName)
 
         // Test special characters
-        gameManager.addPlayer(name: "Player@#$%")
-        #expect(gameManager.players[3].name == "Player@#$%")
+        let (success5, _) = gameManager.addPlayer(name: "Player@#$%")
+        #expect(success5 == true)
+        #expect(gameManager.players[2].name == "Player@#$%")
 
         // Test unicode characters
-        gameManager.addPlayer(name: "玩家1")
-        #expect(gameManager.players[4].name == "玩家1")
+        let (success6, _) = gameManager.addPlayer(name: "玩家1")
+        #expect(success6 == true)
+        #expect(gameManager.players[3].name == "玩家1")
+
+        // Test duplicate in same game
+        let (success7, reason7) = gameManager.addPlayer(name: "Normal Player")
+        #expect(success7 == false)
+        #expect(reason7?.contains("already exists in the current game") == true)
+    }
+
+    @Test func testCrossSessionPlayerUniqueness() async throws {
+        let gameManager = GameManager()
+
+        // Create first game session with players
+        let (success1, _) = gameManager.addPlayer(name: "Alice")
+        let (success2, _) = gameManager.addPlayer(name: "Bob")
+        #expect(success1 == true)
+        #expect(success2 == true)
+
+        // Start game and create session
+        gameManager.startGame()
+        let session1 = gameManager.createGameSession()
+        #expect(session1 != nil)
+
+        // Reset for new game
+        gameManager.resetGame()
+
+        // Try to add Alice to new game - should fail
+        let (success3, reason3) = gameManager.addPlayer(name: "Alice")
+        #expect(success3 == false)
+        #expect(reason3?.contains("already playing") == true)
+
+        // Try to add Bob to new game - should fail
+        let (success4, reason4) = gameManager.addPlayer(name: "Bob")
+        #expect(success4 == false)
+        #expect(reason4?.contains("already playing") == true)
+
+        // Add different player - should succeed
+        let (success5, _) = gameManager.addPlayer(name: "Charlie")
+        #expect(success5 == true)
+
+        // Complete the first session
+        if let sessionId = session1?.id {
+            gameManager.completeGameSession(sessionId)
+        }
+
+        // Now Alice should be available again
+        gameManager.resetGame()
+        let (success6, _) = gameManager.addPlayer(name: "Alice")
+        #expect(success6 == true)
+    }
+
+    @Test func testGroupLoadingWithConflicts() async throws {
+        let gameManager = GameManager()
+
+        // Create a group with players
+        let group = PlayerGroup(name: "Test Group", playerNames: ["Alice", "Bob", "Charlie"])
+        gameManager.addFavoriteGroup(group)
+
+        // Load the group initially - should succeed
+        let (success1, conflictingPlayers1) = gameManager.loadPlayersFromGroup(group)
+        #expect(success1 == true)
+        #expect(conflictingPlayers1.isEmpty == true)
+        #expect(gameManager.players.count == 3)
+
+        // Start game and create session
+        gameManager.startGame()
+        let session = gameManager.createGameSession()
+        #expect(session != nil)
+
+        // Reset for new game
+        gameManager.resetGame()
+
+        // Try to load same group again - should fail due to conflicts
+        let (success2, conflictingPlayers2) = gameManager.loadPlayersFromGroup(group)
+        #expect(success2 == false)
+        #expect(conflictingPlayers2.count == 3)
+        #expect(conflictingPlayers2.contains("Alice") == true)
+        #expect(conflictingPlayers2.contains("Bob") == true)
+        #expect(conflictingPlayers2.contains("Charlie") == true)
+
+        // Players should not be loaded
+        #expect(gameManager.players.isEmpty == true)
+    }
+
+    @Test func testCaseInsensitivePlayerNameConflicts() async throws {
+        let gameManager = GameManager()
+
+        // Add player with specific case
+        let (success1, _) = gameManager.addPlayer(name: "Alice")
+        #expect(success1 == true)
+
+        // Create session
+        gameManager.startGame()
+        let session = gameManager.createGameSession()
+        #expect(session != nil)
+
+        // Reset for new game
+        gameManager.resetGame()
+
+        // Try to add same player with different case - should fail
+        let (success2, reason2) = gameManager.addPlayer(name: "ALICE")
+        #expect(success2 == false)
+        #expect(reason2?.contains("already playing") == true)
+
+        let (success3, reason3) = gameManager.addPlayer(name: "alice")
+        #expect(success3 == false)
+        #expect(reason3?.contains("already playing") == true)
+
+        let (success4, reason4) = gameManager.addPlayer(name: "AlIcE")
+        #expect(success4 == false)
+        #expect(reason4?.contains("already playing") == true)
     }
     
     @Test func testScoreValidation() async throws {
@@ -163,12 +282,15 @@ struct ValidationTests {
     
     @Test func testPlayerRemovalValidation() async throws {
         let gameManager = GameManager()
-        
+
         // Add players
-        gameManager.addPlayer(name: "Player 1")
-        gameManager.addPlayer(name: "Player 2")
-        gameManager.addPlayer(name: "Player 3")
-        
+        let (success1, _) = gameManager.addPlayer(name: "Player 1")
+        let (success2, _) = gameManager.addPlayer(name: "Player 2")
+        let (success3, _) = gameManager.addPlayer(name: "Player 3")
+
+        #expect(success1 == true)
+        #expect(success2 == true)
+        #expect(success3 == true)
         #expect(gameManager.players.count == 3)
         
         // Remove middle player

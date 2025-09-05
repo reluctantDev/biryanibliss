@@ -55,8 +55,9 @@ struct chiptallyTests {
     @Test func testAddPlayer() async throws {
         let gameManager = GameManager()
         gameManager.creditsPerBuyIn = 200.0
-        gameManager.addPlayer(name: "Test Player")
+        let (success, _) = gameManager.addPlayer(name: "Test Player")
 
+        #expect(success == true)
         #expect(gameManager.players.count == 1)
         #expect(gameManager.players[0].name == "Test Player")
         #expect(gameManager.players[0].totalCredits == 200.0)
@@ -64,8 +65,11 @@ struct chiptallyTests {
 
     @Test func testRemovePlayer() async throws {
         let gameManager = GameManager()
-        gameManager.addPlayer(name: "Player 1")
-        gameManager.addPlayer(name: "Player 2")
+        let (success1, _) = gameManager.addPlayer(name: "Player 1")
+        let (success2, _) = gameManager.addPlayer(name: "Player 2")
+
+        #expect(success1 == true)
+        #expect(success2 == true)
 
         gameManager.removePlayer(at: 0)
 

@@ -37,6 +37,9 @@ struct ContentView: View {
     @State private var selectedSessionIds: Set<UUID> = []
     @State private var showingDeleteSelectedAlert = false
     @State private var showingDeleteAllAlert = false
+    @State private var showingPlayerConflictAlert = false
+    @State private var conflictingPlayers: [String] = []
+    @State private var conflictingGroupName = ""
     
     var body: some View {
         NavigationView {
@@ -435,9 +438,16 @@ struct ContentView: View {
                                         selectedGroupIndex = nil
                                         gameManager.resetGame() // Clear players when unselecting
                                     } else {
-                                        // Select new group
-                                        selectedGroupIndex = index
-                                        gameManager.loadPlayersFromGroup(group)
+                                        // Select new group - check for conflicts first
+                                        let result = gameManager.loadPlayersFromGroup(group)
+                                        if result.success {
+                                            selectedGroupIndex = index
+                                        } else {
+                                            // Show conflict alert
+                                            conflictingPlayers = result.conflictingPlayers
+                                            conflictingGroupName = group.name
+                                            showingPlayerConflictAlert = true
+                                        }
                                     }
                                 },
                                 onEdit: {
@@ -666,6 +676,15 @@ struct ContentView: View {
             Button("Cancel", role: .cancel) { }
         } message: {
             Text("This will permanently delete all \(gameManager.gameSessions.count) game sessions. This action cannot be undone.")
+        }
+        .alert("Players Already in Active Games", isPresented: $showingPlayerConflictAlert) {
+            Button("OK", role: .cancel) {
+                conflictingPlayers = []
+                conflictingGroupName = ""
+            }
+        } message: {
+            let playerList = conflictingPlayers.joined(separator: ", ")
+            Text("Cannot load '\(conflictingGroupName)' because the following players are already in active games: \(playerList). Please wait for their games to finish or abandon those games first.")
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()
