@@ -40,7 +40,39 @@ struct ContentView: View {
     @State private var showingPlayerConflictAlert = false
     @State private var conflictingPlayers: [String] = []
     @State private var conflictingGroupName = ""
-    
+    @State private var playerConflictDetails: [String: String] = [:]
+
+    private var groupedConflictMessage: String {
+        // Group players by game name
+        var gameGroups: [String: [String]] = [:]
+        for (player, game) in playerConflictDetails {
+            if gameGroups[game] == nil {
+                gameGroups[game] = []
+            }
+            gameGroups[game]?.append(player)
+        }
+
+        // Sort games by start time (newest first)
+        let sortedGames = gameGroups.keys.sorted { game1, game2 in
+            let session1 = gameManager.gameSessions.first { $0.name == game1 }
+            let session2 = gameManager.gameSessions.first { $0.name == game2 }
+
+            guard let date1 = session1?.dateCreated, let date2 = session2?.dateCreated else {
+                return game1 < game2 // Fallback to alphabetical if dates unavailable
+            }
+
+            return date1 > date2 // Newest first (reverse chronological)
+        }
+
+        let conflictDetails = sortedGames.map { game in
+            let players = gameGroups[game] ?? []
+            let playerList = players.joined(separator: ", ")
+            return "• \(game): \(playerList)"
+        }.joined(separator: "\n")
+
+        return "Cannot load '\(conflictingGroupName)' because the following players are already in active games:\n\n\(conflictDetails)\n\nPlease wait for their games to finish or abandon those games first."
+    }
+
     var body: some View {
         NavigationView {
             ScrollView {
@@ -443,9 +475,10 @@ struct ContentView: View {
                                         if result.success {
                                             selectedGroupIndex = index
                                         } else {
-                                            // Show conflict alert
+                                            // Show conflict alert with detailed information
                                             conflictingPlayers = result.conflictingPlayers
                                             conflictingGroupName = group.name
+                                            playerConflictDetails = gameManager.getGroupConflictDetails(group)
                                             showingPlayerConflictAlert = true
                                         }
                                     }
@@ -559,7 +592,9 @@ struct ContentView: View {
                 Button(action: {
                     // If no players exist (no group selected), generate default players
                     if gameManager.players.isEmpty {
+                        print("No players found, generating default players...")
                         gameManager.generateDefaultPlayers()
+                        print("Generated \(gameManager.players.count) default players: \(gameManager.players.map { $0.name })")
                     }
 
                     // Check if we can create a new session (max 10 limit)
@@ -578,6 +613,7 @@ struct ContentView: View {
                         gameManager.startGame() // Track buy-in amount
                         if let newSession = gameManager.createGameSession() {
                             selectedGameSession = newSession
+                            showingGame = true // Actually show the game!
                         }
                     }
                 }) {
@@ -681,10 +717,10 @@ struct ContentView: View {
             Button("OK", role: .cancel) {
                 conflictingPlayers = []
                 conflictingGroupName = ""
+                playerConflictDetails = [:]
             }
         } message: {
-            let playerList = conflictingPlayers.joined(separator: ", ")
-            Text("Cannot load '\(conflictingGroupName)' because the following players are already in active games: \(playerList). Please wait for their games to finish or abandon those games first.")
+            Text(groupedConflictMessage)
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()

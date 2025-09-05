@@ -86,14 +86,42 @@ class GameManager: ObservableObject {
     func generateDefaultPlayers() {
         players.removeAll()
 
-        let defaultNames = ["Player 1", "Player 2", "Player 3", "Player 4", "Player 5", "Player 6",
-                           "Player 7", "Player 8", "Player 9", "Player 10", "Player 11", "Player 12"]
+        let baseNames = ["Player 1", "Player 2", "Player 3", "Player 4", "Player 5", "Player 6",
+                        "Player 7", "Player 8", "Player 9", "Player 10", "Player 11", "Player 12"]
 
-        for i in 0..<numberOfPlayers {
-            let playerName = defaultNames[i]
-            let newPlayer = Player(name: playerName, buyIns: 1, totalCredits: creditsPerBuyIn, score: 0)
-            players.append(newPlayer)
+        var playersCreated = 0
+        var nameIndex = 0
+
+        while playersCreated < numberOfPlayers && nameIndex < baseNames.count {
+            let candidateName = baseNames[nameIndex]
+
+            // Check if this name conflicts with active sessions
+            if !isPlayerNameInActiveSession(candidateName) {
+                let newPlayer = Player(name: candidateName, buyIns: 1, totalCredits: creditsPerBuyIn, score: 0)
+                players.append(newPlayer)
+                playersCreated += 1
+            } else {
+                // Log which game is causing the conflict
+                if let conflictingGame = getActiveSessionNameForPlayer(candidateName) {
+                    print("Skipping '\(candidateName)' - already in active game '\(conflictingGame)'")
+                }
+            }
+            nameIndex += 1
         }
+
+        // If we couldn't create enough players due to conflicts, create numbered alternatives
+        while playersCreated < numberOfPlayers {
+            let alternativeName = "Player \(nameIndex + 1)"
+            if !isPlayerNameInActiveSession(alternativeName) {
+                let newPlayer = Player(name: alternativeName, buyIns: 1, totalCredits: creditsPerBuyIn, score: 0)
+                players.append(newPlayer)
+                playersCreated += 1
+            }
+            nameIndex += 1
+        }
+
+        // Update the total pot credits
+        updateTotalPotCredits()
     }
     
     func addPlayer(name: String) -> (success: Bool, reason: String?) {
@@ -361,6 +389,21 @@ class GameManager: ObservableObject {
 
         updateTotalPotCredits()
         return (true, [])
+    }
+
+    /// Get detailed conflict information for group loading
+    func getGroupConflictDetails(_ group: PlayerGroup) -> [String: String] {
+        var conflicts: [String: String] = [:]
+
+        for playerName in group.playerNames {
+            if isPlayerNameInActiveSession(playerName) {
+                if let sessionName = getActiveSessionNameForPlayer(playerName) {
+                    conflicts[playerName] = sessionName
+                }
+            }
+        }
+
+        return conflicts
     }
 
     func saveCurrentPlayersAsGroup(name: String) {
