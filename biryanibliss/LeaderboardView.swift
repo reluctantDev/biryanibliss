@@ -166,9 +166,8 @@ struct LeaderboardView: View {
                 }
                 .padding()
                 .padding(.bottom, 20) // Extra bottom padding to ensure buttons are visible
-                }
-                .background(Color(.systemGray6))
             }
+            .background(Color(.systemGray6))
             .navigationBarHidden(true)
         }
     }
@@ -269,25 +268,7 @@ struct LeaderboardPlayerCard: View {
     }
 }
 
-struct StatRow: View {
-    let label: String
-    let value: String
 
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-
-            Spacer()
-
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundColor(.primary)
-        }
-    }
-}
 
 struct LeaderboardView_Previews: PreviewProvider {
     static var previews: some View {
