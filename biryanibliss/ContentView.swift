@@ -214,10 +214,6 @@ struct ContentView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 60, height: 60)
-
-                    Text("Chip Ledger")
-                        .font(.title)
-                        .fontWeight(.bold)
                 }
                 .padding(.top)
 
@@ -505,201 +501,170 @@ struct ContentView: View {
 
 
 
-                // Game Configuration Section
-                VStack(spacing: 16) {
+                // Game Setup Section - Compact & Slick
+                VStack(spacing: 12) {
+                    // Compact header
                     HStack {
                         Image(systemName: "gearshape.fill")
                             .foregroundColor(.blue)
                             .font(.title2)
 
-                        Text("Game Configuration")
+                        Text("Game Setup")
                             .font(.title2)
                             .fontWeight(.bold)
 
                         Spacer()
                     }
 
-                    VStack(spacing: 16) {
-                        // Buy-in Credits (Editable with increment/decrement)
-                        HStack {
-                            Text("Buy-in:")
-                                .font(.subheadline)
-                                .foregroundColor(.primary)
-
-                            Spacer()
-
-                            HStack(spacing: 12) {
-                                // Decrement button
-                                Button(action: {
-                                    let newValue = max(50, gameManager.creditsPerBuyIn - 50)
-                                    gameManager.creditsPerBuyIn = newValue
-                                    gameManager.updateTotalPotCredits()
-                                }) {
-                                    Image(systemName: "minus.circle.fill")
-                                        .font(.title3)
-                                        .foregroundColor(gameManager.creditsPerBuyIn > 50 ? .red : .gray)
-                                }
-                                .disabled(gameManager.creditsPerBuyIn <= 50)
-
-                                // Current value display
-                                Text("\(Int(gameManager.creditsPerBuyIn))")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .frame(width: 60)
-                                    .multilineTextAlignment(.center)
-
-                                // Increment button
-                                Button(action: {
-                                    let newValue = min(2000, gameManager.creditsPerBuyIn + 50)
-                                    gameManager.creditsPerBuyIn = newValue
-                                    gameManager.updateTotalPotCredits()
-                                }) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.title3)
-                                        .foregroundColor(gameManager.creditsPerBuyIn < 2000 ? .green : .gray)
-                                }
-                                .disabled(gameManager.creditsPerBuyIn >= 2000)
-
-                                Text("Credits")
+                    // Compact configuration grid
+                    VStack(spacing: 8) {
+                        // Buy-in and Players in one row
+                        HStack(spacing: 16) {
+                            // Buy-in section (compact)
+                            VStack(alignment: .center, spacing: 4) {
+                                Text("Buy-in")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .frame(width: 50, alignment: .leading)
-                            }
-                        }
-                        .padding()
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
-
-                        // Number of Players
-                        HStack {
-                            Text("# of Players:")
-                                .font(.subheadline)
-                                .foregroundColor(.primary)
-
-                            Spacer()
-
-                            HStack(spacing: 12) {
-                                Button(action: {
-                                    if gameManager.numberOfPlayers > 1 {
-                                        gameManager.numberOfPlayers -= 1
-                                        gameManager.updateTotalPotCredits()
-                                    }
-                                }) {
-                                    Image(systemName: "minus.circle.fill")
-                                        .font(.title3)
-                                        .foregroundColor(.red)
-                                }
-
-                                Text("\(gameManager.numberOfPlayers)")
-                                    .font(.subheadline)
                                     .fontWeight(.medium)
-                                    .foregroundColor(.blue)
-                                    .frame(width: 60)
-                                    .multilineTextAlignment(.center)
+                                    .foregroundColor(.secondary)
 
-                                Button(action: {
-                                    if gameManager.numberOfPlayers < 12 {
-                                        gameManager.numberOfPlayers += 1
+                                HStack(spacing: 8) {
+                                    Button(action: {
+                                        let newValue = max(50, gameManager.creditsPerBuyIn - 50)
+                                        gameManager.creditsPerBuyIn = newValue
                                         gameManager.updateTotalPotCredits()
+                                    }) {
+                                        Image(systemName: "minus.circle.fill")
+                                            .font(.callout)
+                                            .foregroundColor(gameManager.creditsPerBuyIn > 50 ? .red : .gray)
                                     }
-                                }) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.title3)
-                                        .foregroundColor(.green)
+                                    .disabled(gameManager.creditsPerBuyIn <= 50)
+
+                                    Text("\(Int(gameManager.creditsPerBuyIn))")
+                                        .font(.callout)
+                                        .fontWeight(.semibold)
+                                        .frame(width: 50)
+                                        .multilineTextAlignment(.center)
+
+                                    Button(action: {
+                                        let newValue = min(2000, gameManager.creditsPerBuyIn + 50)
+                                        gameManager.creditsPerBuyIn = newValue
+                                        gameManager.updateTotalPotCredits()
+                                    }) {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.callout)
+                                            .foregroundColor(gameManager.creditsPerBuyIn < 2000 ? .green : .gray)
+                                    }
+                                    .disabled(gameManager.creditsPerBuyIn >= 2000)
                                 }
-
-                                // Empty space to align with Credits label above
-                                Text("")
-                                    .frame(width: 50)
                             }
-                        }
-                        .padding()
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
-
-                        // Total Pot Credits (Display Only)
-                        HStack {
-                            Text("Total Credits in Play:")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
 
                             Spacer()
 
-                            HStack(spacing: 12) {
-                                // Empty spaces to align with buttons above
-                                Text("")
-                                    .frame(width: 24)
+                            // Players section (compact)
+                            VStack(alignment: .center, spacing: 4) {
+                                Text("Players")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
+
+                                HStack(spacing: 8) {
+                                    Button(action: {
+                                        if gameManager.numberOfPlayers > 1 {
+                                            gameManager.numberOfPlayers -= 1
+                                            gameManager.updateTotalPotCredits()
+                                        }
+                                    }) {
+                                        Image(systemName: "minus.circle.fill")
+                                            .font(.callout)
+                                            .foregroundColor(.red)
+                                    }
+
+                                    Text("\(gameManager.numberOfPlayers)")
+                                        .font(.callout)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.blue)
+                                        .frame(width: 30)
+                                        .multilineTextAlignment(.center)
+
+                                    Button(action: {
+                                        if gameManager.numberOfPlayers < 12 {
+                                            gameManager.numberOfPlayers += 1
+                                            gameManager.updateTotalPotCredits()
+                                        }
+                                    }) {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.callout)
+                                            .foregroundColor(.green)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Color(.systemBackground))
+                        .cornerRadius(8)
+
+                        // Total pot and selected group in one compact row
+                        HStack {
+                            // Total pot (compact)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Total Pot")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
 
                                 Text("\(Int(gameManager.totalPotCredits))")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
+                                    .font(.callout)
+                                    .fontWeight(.semibold)
                                     .foregroundColor(.orange)
-                                    .frame(width: 60)
-                                    .multilineTextAlignment(.center)
-
-                                Text("")
-                                    .frame(width: 24)
-
-                                Text("Credits")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .frame(width: 50, alignment: .leading)
                             }
-                        }
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
-
-                        // Selected Group Indicator
-                        HStack {
-                            Text("Players:")
-                                .font(.subheadline)
-                                .foregroundColor(.primary)
 
                             Spacer()
 
+                            // Selected group indicator (compact)
                             if let selectedIndex = selectedGroupIndex, selectedIndex < gameManager.favoriteGroups.count {
                                 let selectedGroup = gameManager.favoriteGroups[selectedIndex]
-                                HStack(spacing: 8) {
+                                HStack(spacing: 4) {
                                     Image(systemName: "person.3.fill")
-                                        .font(.caption)
+                                        .font(.caption2)
                                         .foregroundColor(.blue)
 
                                     Text(selectedGroup.name)
-                                        .font(.subheadline)
+                                        .font(.caption)
                                         .fontWeight(.medium)
                                         .foregroundColor(.blue)
+                                        .lineLimit(1)
 
-                                    Text("(\(selectedGroup.playerNames.count) players)")
-                                        .font(.caption)
+                                    Text("(\(selectedGroup.playerNames.count))")
+                                        .font(.caption2)
                                         .foregroundColor(.secondary)
                                 }
                             } else {
-                                HStack(spacing: 8) {
+                                HStack(spacing: 4) {
                                     Image(systemName: "person.crop.circle.dashed")
-                                        .font(.caption)
+                                        .font(.caption2)
                                         .foregroundColor(.secondary)
 
-                                    Text("Placeholder Players")
-                                        .font(.subheadline)
+                                    Text("Placeholder")
+                                        .font(.caption)
                                         .fontWeight(.medium)
                                         .foregroundColor(.secondary)
 
-                                    Text("(\(gameManager.numberOfPlayers) players)")
-                                        .font(.caption)
+                                    Text("(\(gameManager.numberOfPlayers))")
+                                        .font(.caption2)
                                         .foregroundColor(.secondary)
                                 }
                             }
                         }
-                        .padding()
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
                     }
                 }
-                .padding()
+                .padding(12)
                 .background(Color(.systemBackground))
-                .cornerRadius(20)
-                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                .cornerRadius(12)
+                .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
 
                 // Favorite Groups Section
                 VStack(spacing: 16) {
