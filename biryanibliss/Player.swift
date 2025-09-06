@@ -106,15 +106,7 @@ class GameManager: ObservableObject {
             }
         }
 
-        // Check current active players as well
-        for player in players {
-            if player.name.hasPrefix("Player ") {
-                let numberPart = String(player.name.dropFirst(7)) // Remove "Player "
-                if let number = Int(numberPart) {
-                    maxPlayerNumber = max(maxPlayerNumber, number)
-                }
-            }
-        }
+        // Note: No need to check current players since we just cleared them with removeAll()
 
         var playersCreated = 0
         var currentPlayerNumber = maxPlayerNumber + 1

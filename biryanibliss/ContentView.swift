@@ -743,9 +743,9 @@ struct ContentView: View {
 
                 // Start Game Button
                 Button(action: {
-                    // If no players exist (no group selected), generate default players
-                    if gameManager.players.isEmpty {
-                        print("No players found, generating default players...")
+                    // If no group is selected, always generate new placeholder players
+                    if selectedGroupIndex == nil {
+                        print("No group selected, generating new placeholder players...")
                         gameManager.generateDefaultPlayers()
                         print("Generated \(gameManager.players.count) default players: \(gameManager.players.map { $0.name })")
                     }
