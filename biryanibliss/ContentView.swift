@@ -35,7 +35,7 @@ struct ContentView: View {
     @State private var showingDeleteSelectedAlert = false
     @State private var showingDeleteAllAlert = false
     @State private var lastFailedGroupName: String? = nil // Track failed group selection
-    @State private var showActiveGamesOnly = true
+    @State private var showActiveGamesOnly = false
 
 
 

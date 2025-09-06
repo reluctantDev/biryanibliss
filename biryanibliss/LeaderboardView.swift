@@ -93,7 +93,7 @@ struct LeaderboardView: View {
                             .font(.headline)
                             .fontWeight(.semibold)
                         
-                        LazyVStack(spacing: 12) {
+                        LazyVStack(spacing: 6) {
                             ForEach(Array(sortedPlayers.enumerated()), id: \.element.id) { index, player in
                                 LeaderboardCard(
                                     player: player,
@@ -109,14 +109,14 @@ struct LeaderboardView: View {
                     .cornerRadius(16)
                     .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
                     
-                    // Action Buttons
-                    VStack(spacing: 20) {
+                    // Action Buttons - Slick Design
+                    VStack(spacing: 12) {
                         Text("🎮 Game Options")
-                            .font(.title2)
-                            .fontWeight(.bold)
+                            .font(.system(size: 18, weight: .bold))
                             .foregroundColor(.primary)
 
-                        VStack(spacing: 16) {
+                        HStack(spacing: 12) {
+                            // Play Again Button - Compact
                             Button(action: {
                                 // Create new game session and go back to main screen
                                 if let newSession = gameManager.createGameSession() {
@@ -127,23 +127,24 @@ struct LeaderboardView: View {
                                 }
                                 // If session creation fails (limit reached), stay on current screen
                             }) {
-                                HStack {
+                                VStack(spacing: 6) {
                                     Image(systemName: "play.circle.fill")
-                                        .font(.title2)
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.white)
 
                                     Text("Play Again")
-                                        .font(.headline)
-                                        .fontWeight(.bold)
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.white)
                                 }
-                                .foregroundColor(.white)
-                                .padding(.vertical, 16)
-                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
                                 .frame(maxWidth: .infinity)
                                 .background(Color.green)
-                                .cornerRadius(25)
-                                .shadow(color: .green.opacity(0.3), radius: 10, x: 0, y: 5)
+                                .cornerRadius(16)
+                                .shadow(color: .green.opacity(0.3), radius: 6, x: 0, y: 3)
                             }
 
+                            // Back to Main Button - Compact
                             Button(action: {
                                 // Go back to main screen without creating new game
                                 dismiss()
@@ -151,42 +152,40 @@ struct LeaderboardView: View {
                                 // Call the callback to dismiss all views and return to main
                                 onNewGame?()
                             }) {
-                                HStack {
+                                VStack(spacing: 6) {
                                     Image(systemName: "house.fill")
-                                        .font(.title2)
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.white)
 
-                                    Text("Back to Main Screen")
-                                        .font(.headline)
-                                        .fontWeight(.bold)
+                                    Text("Main Screen")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.white)
                                 }
-                                .foregroundColor(.white)
-                                .padding(.vertical, 16)
-                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
                                 .frame(maxWidth: .infinity)
                                 .background(Color.blue)
-                                .cornerRadius(25)
-                                .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
+                                .cornerRadius(16)
+                                .shadow(color: .blue.opacity(0.3), radius: 6, x: 0, y: 3)
                             }
-
-                            // Additional info text
-                            VStack(spacing: 4) {
-                                Text("• Play Again: Creates new game session with same players")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.leading)
-
-                                Text("• Back to Main Screen: Return to home without new game")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.leading)
-                            }
-                            .padding(.top, 8)
                         }
+
+                        // Compact info text
+                        VStack(spacing: 2) {
+                            Text("Play Again: New session with same players")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+
+                            Text("Main Screen: Return to home")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.top, 4)
                     }
-                    .padding(20)
+                    .padding(16)
                     .background(Color(.systemBackground))
-                    .cornerRadius(20)
-                    .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
+                    .cornerRadius(16)
+                    .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
                 }
                 .padding()
                 .padding(.bottom, 20) // Extra bottom padding to ensure buttons are visible
@@ -211,87 +210,88 @@ struct LeaderboardCard: View {
     private var isProfit: Bool {
         return creditsChange > 0
     }
+
+
     
     var body: some View {
-        HStack(spacing: 16) {
-            // Rank Badge
+        HStack(spacing: 12) {
+            // Compact Rank Badge
             ZStack {
                 Circle()
                     .fill(isWinner ? Color.yellow : Color.gray.opacity(0.3))
-                    .frame(width: 40, height: 40)
-                
+                    .frame(width: 32, height: 32)
+
                 if isWinner {
                     Image(systemName: "crown.fill")
-                        .font(.title3)
+                        .font(.system(size: 14))
                         .foregroundColor(.orange)
                 } else {
                     Text("\(rank)")
-                        .font(.headline)
-                        .fontWeight(.bold)
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.white)
                 }
             }
-            
-            // Player Avatar
-            Circle()
-                .fill(Color.blue.opacity(0.2))
-                .frame(width: 50, height: 50)
-                .overlay(
-                    Text(String(player.name.prefix(1)).uppercased())
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.blue)
-                )
-            
-            // Player Info
-            VStack(alignment: .leading, spacing: 4) {
-                Text(player.name)
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                
-                if isWinner {
-                    Text("🏆 Winner")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.yellow)
+
+            // Player Info - Expanded Layout (No Avatar)
+            HStack(spacing: 12) {
+                // Player Name and Status
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(player.name)
+                            .font(.system(size: 15, weight: .semibold))
+                            .lineLimit(1)
+
+                        if isWinner {
+                            Text("🏆")
+                                .font(.system(size: 12))
+                        }
+                    }
+
+                    Text("\(player.buyIns) buy-in\(player.buyIns > 1 ? "s" : "")")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
                 }
-                
-                Text("\(player.buyIns) buy-in\(player.buyIns > 1 ? "s" : "")")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            // Credits and Change
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("Final Credits")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                Text("\(Int(player.totalCredits))")
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundColor(isWinner ? .green : .primary)
-                
-                HStack(spacing: 2) {
-                    Image(systemName: isProfit ? "arrow.up" : "arrow.down")
-                        .font(.caption2)
-                        .foregroundColor(isProfit ? .green : .red)
-                    
-                    Text("\(isProfit ? "+" : "")\(Int(creditsChange))")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(isProfit ? .green : .red)
+
+                Spacer()
+
+                // Credits - More Space
+                VStack(alignment: .center, spacing: 2) {
+                    Text("Credits")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
+
+                    Text("\(Int(player.totalCredits))")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(isWinner ? .green : .primary)
+                }
+
+                // Profit/Loss Amount - More Space
+                VStack(alignment: .center, spacing: 2) {
+                    Text("P/L Amount")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
+
+                    HStack(spacing: 2) {
+                        Image(systemName: isProfit ? "arrow.up" : "arrow.down")
+                            .font(.system(size: 10))
+                            .foregroundColor(isProfit ? .green : .red)
+
+                        Text("\(isProfit ? "+" : "")\(Int(creditsChange))")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(isProfit ? .green : .red)
+                    }
                 }
             }
         }
-        .padding()
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .background(isWinner ? Color.yellow.opacity(0.1) : Color(.systemGray6))
-        .cornerRadius(12)
+        .cornerRadius(10)
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(isWinner ? Color.yellow : Color.clear, lineWidth: 2)
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(isWinner ? Color.yellow : Color.clear, lineWidth: 1.5)
         )
     }
 }
