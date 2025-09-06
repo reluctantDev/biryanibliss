@@ -240,7 +240,11 @@ struct ContentView: View {
                         // Second row: Controls (only show if there are sessions)
                         if !gameManager.gameSessions.isEmpty {
                             HStack {
-                                // Active Games Filter Toggle (moved to leftmost)
+                                // Add some leading space to move Active filter to the right
+                                Spacer()
+                                    .frame(width: 20)
+
+                                // Active Games Filter Toggle
                                 Button(action: {
                                     showActiveGamesOnly.toggle()
                                 }) {
@@ -330,91 +334,164 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 20)
                     } else {
-                        // Scrollable sessions: 2 games visible, rest scrollable (hard limit 10 total)
+                        // Enhanced unified scroll view with better UX
                         let recentSessions = Array(filteredGameSessions.reversed())
-                        let visibleSessions = Array(recentSessions.prefix(2))
-                        let hasMoreSessions = recentSessions.count > 2
+                        let totalSessions = recentSessions.count
 
-                        VStack(spacing: 0) {
-                            // Always visible: Last 2 sessions
-                            ForEach(Array(visibleSessions.enumerated()), id: \.element.id) { index, session in
-                                let originalIndex = gameManager.gameSessions.firstIndex(where: { $0.id == session.id }) ?? 0
-                                GameSessionCard(
-                                    session: session,
-                                    onTap: {
-                                        if !isSelectMode {
-                                            if session.isCompleted {
-                                                gameResultsSession = session
-                                            } else {
-                                                selectedGameSession = session
-                                                gameManager.loadPlayersFromSession(session)
-                                                showingGame = true
-                                            }
-                                        }
-                                    },
-                                    onDelete: {
-                                        gameManager.deleteGameSession(at: originalIndex)
-                                    },
-                                    isSelectMode: isSelectMode,
-                                    isSelected: selectedSessionIds.contains(session.id),
-                                    onSelectionToggle: {
-                                        if selectedSessionIds.contains(session.id) {
-                                            selectedSessionIds.remove(session.id)
-                                        } else {
-                                            selectedSessionIds.insert(session.id)
-                                        }
-                                    }
-                                )
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button("Delete", role: .destructive) {
-                                        gameManager.deleteGameSession(at: originalIndex)
-                                    }
+                        VStack(spacing: 8) {
+                            // Session count indicator
+                            if totalSessions > 3 {
+                                HStack {
+                                    Image(systemName: "arrow.up.arrow.down")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+
+                                    Text("Scroll to see all \(totalSessions) sessions")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+
+                                    Spacer()
+
+                                    Text("Newest first")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
                                 }
-                                .padding(.bottom, index < visibleSessions.count - 1 ? 12 : 0)
+                                .padding(.horizontal, 4)
+                                .padding(.bottom, 4)
                             }
 
-                            // Scrollable area for additional sessions (3-10)
-                            if hasMoreSessions {
-                                ScrollView {
-                                    LazyVStack(spacing: 12) {
-                                        ForEach(Array(recentSessions.dropFirst(2).enumerated()), id: \.element.id) { index, session in
-                                            let originalIndex = gameManager.gameSessions.firstIndex(where: { $0.id == session.id }) ?? 0
-                                            GameSessionCard(
-                                                session: session,
-                                                onTap: {
-                                                    if !isSelectMode {
-                                                        if session.isCompleted {
-                                                            gameResultsSession = session
+                            // Unified scroll view for all sessions
+                            ScrollViewReader { proxy in
+                                VStack(spacing: 8) {
+                                    ScrollView {
+                                        LazyVStack(spacing: 12) {
+                                            ForEach(Array(recentSessions.enumerated()), id: \.element.id) { index, session in
+                                                let originalIndex = gameManager.gameSessions.firstIndex(where: { $0.id == session.id }) ?? 0
+
+                                                GameSessionCard(
+                                                    session: session,
+                                                    onTap: {
+                                                        if !isSelectMode {
+                                                            if session.isCompleted {
+                                                                gameResultsSession = session
+                                                            } else {
+                                                                selectedGameSession = session
+                                                                gameManager.loadPlayersFromSession(session)
+                                                                showingGame = true
+                                                            }
+                                                        }
+                                                    },
+                                                    onDelete: {
+                                                        gameManager.deleteGameSession(at: originalIndex)
+                                                    },
+                                                    isSelectMode: isSelectMode,
+                                                    isSelected: selectedSessionIds.contains(session.id),
+                                                    onSelectionToggle: {
+                                                        if selectedSessionIds.contains(session.id) {
+                                                            selectedSessionIds.remove(session.id)
                                                         } else {
-                                                            selectedGameSession = session
-                                                            gameManager.loadPlayersFromSession(session)
-                                                            showingGame = true
+                                                            selectedSessionIds.insert(session.id)
                                                         }
                                                     }
-                                                },
-                                                onDelete: {
-                                                    gameManager.deleteGameSession(at: originalIndex)
-                                                },
-                                                isSelectMode: isSelectMode,
-                                                isSelected: selectedSessionIds.contains(session.id),
-                                                onSelectionToggle: {
-                                                    if selectedSessionIds.contains(session.id) {
-                                                        selectedSessionIds.remove(session.id)
-                                                    } else {
-                                                        selectedSessionIds.insert(session.id)
+                                                )
+                                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                                    Button("Delete", role: .destructive) {
+                                                        gameManager.deleteGameSession(at: originalIndex)
                                                     }
                                                 }
-                                            )
-                                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                                Button("Delete", role: .destructive) {
-                                                    gameManager.deleteGameSession(at: originalIndex)
+                                                .id("session-\(session.id)")
+                                                // Visual indicator for newest session
+                                                .overlay(
+                                                    index == 0 ?
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .stroke(Color.blue.opacity(0.3), lineWidth: 2)
+                                                    : nil
+                                                )
+                                            }
+
+                                            // Bottom indicator when scrolled
+                                            if totalSessions > 3 {
+                                                HStack {
+                                                    Image(systemName: "checkmark.circle.fill")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.green)
+
+                                                    Text("All \(totalSessions) sessions shown")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.secondary)
                                                 }
+                                                .padding(.top, 8)
+                                                .id("bottom-indicator")
+                                            }
+                                        }
+                                        .padding(.vertical, 4)
+                                    }
+                                    .frame(maxHeight: min(CGFloat(totalSessions) * 80, 320)) // Dynamic height with max limit (compact cards)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color(.systemBackground))
+                                            .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+                                    )
+                                    .onAppear {
+                                        // Auto-scroll to newest session when view appears
+                                        if let newestSession = recentSessions.first {
+                                            withAnimation(.easeInOut(duration: 0.5)) {
+                                                proxy.scrollTo("session-\(newestSession.id)", anchor: .top)
                                             }
                                         }
                                     }
-                                    .padding(.top, 12)
+                                    .onChange(of: gameManager.gameSessions.count) { _ in
+                                        // Auto-scroll to newest session when new session is added
+                                        if let newestSession = recentSessions.first {
+                                            withAnimation(.easeInOut(duration: 0.5)) {
+                                                proxy.scrollTo("session-\(newestSession.id)", anchor: .top)
+                                            }
+                                        }
+                                    }
+
+                                    // Quick action buttons for better UX
+                                    if totalSessions > 3 {
+                                        HStack(spacing: 16) {
+                                            Button(action: {
+                                                // Scroll to newest session
+                                                if let newestSession = recentSessions.first {
+                                                    withAnimation(.easeInOut(duration: 0.5)) {
+                                                        proxy.scrollTo("session-\(newestSession.id)", anchor: .top)
+                                                    }
+                                                }
+                                            }) {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "arrow.up.to.line")
+                                                        .font(.caption2)
+                                                    Text("Newest")
+                                                        .font(.caption2)
+                                                }
+                                                .foregroundColor(.blue)
+                                            }
+
+                                            Spacer()
+
+                                            Button(action: {
+                                                // Scroll to oldest session
+                                                if let oldestSession = recentSessions.last {
+                                                    withAnimation(.easeInOut(duration: 0.5)) {
+                                                        proxy.scrollTo("session-\(oldestSession.id)", anchor: .bottom)
+                                                    }
+                                                }
+                                            }) {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "arrow.down.to.line")
+                                                        .font(.caption2)
+                                                    Text("Oldest")
+                                                        .font(.caption2)
+                                                }
+                                                .foregroundColor(.blue)
+                                            }
+                                        }
+                                        .padding(.horizontal, 8)
+                                        .padding(.top, 4)
+                                    }
                                 }
-                                .frame(maxHeight: 200) // Fixed height for scrollable area
                             }
                         }
                     }
@@ -1389,151 +1466,128 @@ struct GameSessionCard: View {
 
     var body: some View {
         Button(action: isSelectMode ? onSelectionToggle : onTap) {
-            VStack(alignment: .leading, spacing: 12) {
-                // Header
-                HStack {
-                    // Selection indicator
-                    if isSelectMode {
-                        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                            .foregroundColor(isSelected ? .blue : .gray)
-                            .font(.title3)
+            HStack(spacing: 10) {
+                // Selection indicator
+                if isSelectMode {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(isSelected ? .blue : .gray)
+                        .font(.title3)
+                }
+
+                // Main content in horizontal layout for compactness
+                HStack(spacing: 12) {
+                    // Left side: Game info
+                    VStack(alignment: .leading, spacing: 3) {
+                        // Game name and status in one line
+                        HStack(spacing: 6) {
+                            Text(session.name)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+
+                            // Compact status dot
+                            Circle()
+                                .fill(statusColor)
+                                .frame(width: 6, height: 6)
+                        }
+
+                        // Date, player count, and group info in one compact line
+                        HStack(spacing: 6) {
+                            // Date (time only for compactness)
+                            Text(formattedDate.components(separatedBy: " ").last ?? formattedDate)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+
+                            Text("•")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+
+                            // Player count with icon
+                            HStack(spacing: 2) {
+                                Image(systemName: "person.2.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                                Text("\(session.players.count)")
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.blue)
+                            }
+
+                            Text("•")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+
+                            // Group or placeholder indicator
+                            if let groupName = session.originalGroupName {
+                                HStack(spacing: 2) {
+                                    Image(systemName: "person.3.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(.purple)
+                                    Text(groupName)
+                                        .font(.caption2)
+                                        .foregroundColor(.purple)
+                                        .fontWeight(.medium)
+                                        .lineLimit(1)
+
+                                    // Show + indicator if there are additional players
+                                    if let originalPlayerNames = session.originalGroupPlayerNames,
+                                       session.players.count > originalPlayerNames.count {
+                                        Text("+\(session.players.count - originalPlayerNames.count)")
+                                            .font(.caption2)
+                                            .foregroundColor(.orange)
+                                            .fontWeight(.bold)
+                                    }
+                                }
+                            } else {
+                                HStack(spacing: 2) {
+                                    Image(systemName: "person.crop.circle.dashed")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                    Text("Placeholder")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
                     }
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(session.name)
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                    Spacer()
+
+                    // Right side: Game details (very compact)
+                    VStack(alignment: .trailing, spacing: 2) {
+                        // Buy-in and pot in compact format
+                        Text("\(Int(session.creditsPerBuyIn))/\(Int(session.totalPotCredits))")
+                            .font(.caption)
+                            .fontWeight(.medium)
                             .foregroundColor(.primary)
 
-                        Text(formattedDate)
-                            .font(.caption)
+                        Text("buy-in/pot")
+                            .font(.caption2)
                             .foregroundColor(.secondary)
-                    }
 
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 4) {
-                        HStack(spacing: 4) {
-                            Image(systemName: statusIcon)
-                                .foregroundColor(statusColor)
-                                .font(.caption)
+                        // Status or completion time
+                        if let completedDateString = formattedCompletedDate {
+                            Text("✓ \(completedDateString.components(separatedBy: " ").last ?? "")")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                                .lineLimit(1)
+                        } else {
                             Text(statusText)
-                                .font(.caption)
+                                .font(.caption2)
                                 .fontWeight(.medium)
                                 .foregroundColor(statusColor)
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(statusColor.opacity(0.1))
-                        .cornerRadius(8)
-
-                        Text("\(session.players.count) players")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-
-                // Group and Players preview
-                VStack(alignment: .leading, spacing: 2) {
-                    // Group name or placeholder indicator
-                    HStack {
-                        if let groupName = session.originalGroupName {
-                            Image(systemName: "person.3.fill")
-                                .foregroundColor(.purple)
-                                .font(.caption)
-                            Text(groupName)
-                                .font(.caption)
-                                .foregroundColor(.purple)
-                                .fontWeight(.medium)
-                        } else {
-                            Image(systemName: "person.crop.circle.dashed")
-                                .foregroundColor(.secondary)
-                                .font(.caption)
-                            Text("Placeholder Players")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-                    }
-
-                    // Players display with additional indicator
-                    HStack {
-                        Image(systemName: "person.2.fill")
-                            .foregroundColor(.blue)
-                            .font(.caption2)
-
-                        if let originalGroupPlayerNames = session.originalGroupPlayerNames {
-                            // Show group players + additional players
-                            let currentPlayerNames = session.players.map { $0.name }
-                            let additionalPlayers = currentPlayerNames.filter { !originalGroupPlayerNames.contains($0) }
-
-                            let displayNames = originalGroupPlayerNames.prefix(2)
-                            Text(displayNames.joined(separator: ", "))
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-
-                            if originalGroupPlayerNames.count > 2 {
-                                Text("+\(originalGroupPlayerNames.count - 2)")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            if !additionalPlayers.isEmpty {
-                                Text("+ \(additionalPlayers.count) added")
-                                    .font(.caption2)
-                                    .foregroundColor(.green)
-                                    .fontWeight(.medium)
-                            }
-                        } else {
-                            // Show placeholder players
-                            let playerNames = session.players.prefix(3).map { $0.name }
-                            Text(playerNames.joined(separator: ", "))
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-
-                            if session.players.count > 3 {
-                                Text("+\(session.players.count - 3) more")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                                    .italic()
-                            }
-                        }
-
-                        Spacer()
-                    }
-                }
-
-                // Game info
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Buy-in: \(Int(session.creditsPerBuyIn))")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-
-                        Text("Pot: \(Int(session.totalPotCredits))")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-
-                    Spacer()
-
-                    if let completedDateString = formattedCompletedDate {
-                        Text("Finished: \(completedDateString)")
-                            .font(.caption2)
-                            .foregroundColor(.green)
                     }
                 }
             }
-            .padding(16)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color(.systemGray6))
-            .cornerRadius(12)
+            .cornerRadius(8)
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(statusColor.opacity(0.3), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(statusColor.opacity(0.2), lineWidth: 1)
             )
         }
         .buttonStyle(PlainButtonStyle())
