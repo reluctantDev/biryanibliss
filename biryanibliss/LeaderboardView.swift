@@ -13,101 +13,78 @@ struct LeaderboardView: View {
     
     var body: some View {
         NavigationView {
-            ZStack {
-                // Celebratory bouncing animations
-                FloatingBouncingView(imageName: "star.fill", imageSize: 18)
-                    .position(x: 60, y: 120)
-                    .opacity(0.6)
-
-                FloatingBouncingView(imageName: "trophy.fill", imageSize: 16)
-                    .position(x: 320, y: 100)
-                    .opacity(0.5)
-
-                SimpleBouncingView(imageName: "crown.fill", imageSize: 14)
-                    .position(x: 350, y: 200)
-                    .opacity(0.4)
-
-                ScrollView {
-                    VStack(spacing: 24) {
-                    // Header
-                    VStack(spacing: 12) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header - Similar to GameResultsView
+                    VStack(spacing: 16) {
                         Image(systemName: "trophy.fill")
-                            .font(.system(size: 50))
+                            .font(.system(size: 60))
                             .foregroundColor(.yellow)
-                        
+
                         Text("Game Complete!")
-                            .font(.title)
+                            .font(.largeTitle)
                             .fontWeight(.bold)
-                        
-                        Text("Final Leaderboard")
-                            .font(.headline)
+
+                        Text("Final Results")
+                            .font(.title2)
                             .foregroundColor(.secondary)
                     }
                     .padding(.top)
-                    
-                    // Game Summary
-                    VStack(spacing: 12) {
-                        Text("Game Summary")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                        
-                        HStack(spacing: 20) {
-                            VStack(spacing: 4) {
-                                Text("Total Credits")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text("\(Int(gameManager.getTotalPotInCredits()))")
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.green)
-                            }
-                            
-                            VStack(spacing: 4) {
-                                Text("Players")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text("\(gameManager.players.count)")
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.blue)
-                            }
-                            
-                            VStack(spacing: 4) {
-                                Text("Buy-in Amount")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text("\(Int(gameManager.creditsPerBuyIn))")
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.orange)
-                            }
+
+                    // Winner Section - Similar to GameResultsView
+                    if let winner = sortedPlayers.first {
+                        VStack(spacing: 8) {
+                            Text("🏆 Biggest Winner")
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(.yellow)
+
+                            Text(winner.name)
+                                .font(.headline)
+                                .fontWeight(.bold)
+
+                            Text("\(Int(winner.totalCredits)) credits")
+                                .font(.subheadline)
+                                .foregroundColor(.yellow)
+                                .fontWeight(.semibold)
                         }
+                        .padding(12)
+                        .background(Color.yellow.opacity(0.1))
+                        .cornerRadius(12)
                     }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(16)
-                    
-                    // Leaderboard
-                    VStack(spacing: 16) {
-                        Text("Final Standings")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                        
-                        LazyVStack(spacing: 6) {
+
+                    // Final Standings - Similar to GameResultsView
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Final Credit Standings")
+                            .font(.title2)
+                            .fontWeight(.bold)
+
+                        VStack(spacing: 8) {
                             ForEach(Array(sortedPlayers.enumerated()), id: \.element.id) { index, player in
-                                LeaderboardCard(
+                                LeaderboardPlayerCard(
                                     player: player,
-                                    rank: index + 1,
-                                    isWinner: index == 0,
+                                    position: index + 1,
                                     gameManager: gameManager
                                 )
                             }
                         }
                     }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .cornerRadius(16)
-                    .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+
+                    // Game Statistics - Similar to GameResultsView
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Game Statistics")
+                            .font(.title2)
+                            .fontWeight(.bold)
+
+                        VStack(spacing: 12) {
+                            StatRow(label: "Players", value: "\(gameManager.players.count)")
+                            StatRow(label: "Buy-in Amount", value: "\(Int(gameManager.creditsPerBuyIn)) credits")
+                            StatRow(label: "Total Credits", value: "\(Int(gameManager.getTotalPotInCredits())) credits")
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
                     
                     // Action Buttons - Slick Design
                     VStack(spacing: 12) {
@@ -197,102 +174,118 @@ struct LeaderboardView: View {
     }
 }
 
-struct LeaderboardCard: View {
+struct LeaderboardPlayerCard: View {
     let player: Player
-    let rank: Int
-    let isWinner: Bool
+    let position: Int
     let gameManager: GameManager
-    
-    private var creditsChange: Double {
-        return player.totalCredits - gameManager.creditsPerBuyIn * Double(player.buyIns)
-    }
-    
-    private var isProfit: Bool {
-        return creditsChange > 0
+
+    private var positionColor: Color {
+        switch position {
+        case 1: return .yellow
+        case 2: return .gray
+        case 3: return .orange
+        default: return .blue
+        }
     }
 
+    private var positionIcon: String {
+        switch position {
+        case 1: return "1.circle.fill"
+        case 2: return "2.circle.fill"
+        case 3: return "3.circle.fill"
+        default: return "\(position).circle"
+        }
+    }
 
-    
+    private var profitLoss: Double {
+        let invested = Double(player.buyIns) * gameManager.creditsPerBuyIn
+        return player.totalCredits - invested
+    }
+
+    private var profitLossColor: Color {
+        profitLoss >= 0 ? .green : .red
+    }
+
+    private var profitLossText: String {
+        if profitLoss >= 0 {
+            return "+\(Int(profitLoss))"
+        } else {
+            return "-\(Int(abs(profitLoss)))"
+        }
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
-            // Compact Rank Badge
-            ZStack {
-                Circle()
-                    .fill(isWinner ? Color.yellow : Color.gray.opacity(0.3))
-                    .frame(width: 32, height: 32)
+        HStack(spacing: 16) {
+            // Position
+            Image(systemName: positionIcon)
+                .font(.title2)
+                .foregroundColor(positionColor)
+                .frame(width: 30)
 
-                if isWinner {
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(.orange)
-                } else {
-                    Text("\(rank)")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
-                }
+            // Player Avatar
+            Circle()
+                .fill(Color.blue.opacity(0.2))
+                .frame(width: 40, height: 40)
+                .overlay(
+                    Text(String(player.name.prefix(1)).uppercased())
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.blue)
+                )
+
+            // Player Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(player.name)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+
+                Text("\(player.buyIns) buy-in\(player.buyIns == 1 ? "" : "s") • Invested: \(Int(Double(player.buyIns) * gameManager.creditsPerBuyIn)) credits")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Text("Final: \(Int(player.totalCredits)) credits")
+                    .font(.caption)
+                    .foregroundColor(.primary)
             }
 
-            // Player Info - Expanded Layout (No Avatar)
-            HStack(spacing: 12) {
-                // Player Name and Status
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(player.name)
-                            .font(.system(size: 15, weight: .semibold))
-                            .lineLimit(1)
+            Spacer()
 
-                        if isWinner {
-                            Text("🏆")
-                                .font(.system(size: 12))
-                        }
-                    }
+            // Credits and Profit/Loss
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("\(Int(player.totalCredits))")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
 
-                    Text("\(player.buyIns) buy-in\(player.buyIns > 1 ? "s" : "")")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-
-                // Credits - More Space
-                VStack(alignment: .center, spacing: 2) {
-                    Text("Credits")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .textCase(.uppercase)
-
-                    Text("\(Int(player.totalCredits))")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(isWinner ? .green : .primary)
-                }
-
-                // Profit/Loss Amount - More Space
-                VStack(alignment: .center, spacing: 2) {
-                    Text("P/L Amount")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .textCase(.uppercase)
-
-                    HStack(spacing: 2) {
-                        Image(systemName: isProfit ? "arrow.up" : "arrow.down")
-                            .font(.system(size: 10))
-                            .foregroundColor(isProfit ? .green : .red)
-
-                        Text("\(isProfit ? "+" : "")\(Int(creditsChange))")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(isProfit ? .green : .red)
-                    }
-                }
+                Text(profitLossText)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(profitLossColor)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(isWinner ? Color.yellow.opacity(0.1) : Color(.systemGray6))
-        .cornerRadius(10)
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(isWinner ? Color.yellow : Color.clear, lineWidth: 1.5)
-        )
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+}
+
+struct StatRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            Text(value)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+        }
     }
 }
 
