@@ -168,7 +168,7 @@ struct GamePlayView: View {
                     .padding(.horizontal, 16)
 
                     // Players List
-                    LazyVStack(spacing: 16) {
+                    LazyVStack(spacing: 8) {
                         ForEach(Array(gameManager.players.enumerated()), id: \.element.id) { index, player in
                             PlayerGameCard(
                                 player: player,
@@ -342,8 +342,8 @@ struct PlayerGameCard: View {
     }
 
     var body: some View {
-        HStack(spacing: 16) {
-            // Enhanced Player Avatar
+        HStack(spacing: 12) {
+            // Compact Player Avatar
             ZStack {
                 Circle()
                     .fill(
@@ -353,118 +353,97 @@ struct PlayerGameCard: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 50, height: 50)
+                    .frame(width: 40, height: 40)
 
                 Text(playerInitials)
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
-            .shadow(color: avatarColor.opacity(0.3), radius: 4, x: 0, y: 2)
+            .shadow(color: avatarColor.opacity(0.3), radius: 3, x: 0, y: 1)
 
-            // Player Info Section
-            VStack(alignment: .leading, spacing: 8) {
+            // Player Info Section - Horizontal Layout
+            HStack(spacing: 16) {
                 // Player Name with Edit Button
-                HStack(spacing: 8) {
-                    Text(player.name)
-                        .font(.system(size: 17, weight: .semibold, design: .default))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(player.name)
+                            .font(.system(size: 15, weight: .semibold, design: .default))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
 
-                    Button(action: {
-                        tempName = player.name
-                        showingNameInput = true
-                    }) {
-                        Image(systemName: "pencil.circle.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.blue.opacity(0.7))
+                        Button(action: {
+                            tempName = player.name
+                            showingNameInput = true
+                        }) {
+                            Image(systemName: "pencil.circle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.blue.opacity(0.7))
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .buttonStyle(PlainButtonStyle())
 
-                    Spacer()
+                    // Additional Buy-ins Indicator (compact)
+                    if player.buyIns > 1 {
+                        HStack(spacing: 3) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 8))
+                                .foregroundColor(.orange)
+
+                            Text("+\(player.buyIns - 1) buy-in\(player.buyIns > 2 ? "s" : "")")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(.orange)
+                        }
+                    }
                 }
 
-                // Stats Row
-                HStack(spacing: 20) {
-                    // Buy-ins Section
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Buy-ins")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                Spacer()
 
-                        HStack(spacing: 8) {
-                            // Buy-in Display with Indicator
-                            HStack(spacing: 4) {
-                                Text("\(player.buyIns)")
-                                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                                    .foregroundColor(.primary)
+                // Buy-ins Section - Compact
+                VStack(alignment: .center, spacing: 2) {
+                    Text("Buy-ins")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
 
-                                if player.buyIns > 1 {
-                                    HStack(spacing: 2) {
-                                        Text("(1")
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundColor(.blue)
+                    HStack(spacing: 6) {
+                        Text("\(player.buyIns)")
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
 
-                                        Text("+\(player.buyIns - 1)")
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundColor(.orange)
-
-                                        Text(")")
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundColor(.blue)
-                                    }
-                                }
-                            }
-
-                            // Add Buy-in Button
-                            Button(action: {
-                                showingBuyInConfirmation = true
-                            }) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(.green)
-                            }
-                            .buttonStyle(PlainButtonStyle())
+                        // Add Buy-in Button
+                        Button(action: {
+                            showingBuyInConfirmation = true
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.green)
                         }
-
-                        // Additional Buy-ins Indicator
-                        if player.buyIns > 1 {
-                            HStack(spacing: 4) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.orange)
-
-                                Text("\(player.buyIns - 1) additional buy-in\(player.buyIns > 2 ? "s" : "")")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(.orange)
-                            }
-                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
+                }
 
-                    // Credits Section
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Credits")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                // Credits Section - Compact
+                VStack(alignment: .center, spacing: 2) {
+                    Text("Credits")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
 
-                        Text("\(Int(player.totalCredits))")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundColor(.green)
-                    }
-
-                    Spacer()
+                    Text("\(Int(player.totalCredits))")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(.green)
                 }
             }
         }
-        .padding(16)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.systemBackground))
-                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+                .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 12)
                 .stroke(Color(.systemGray5), lineWidth: 0.5)
         )
         .accessibilityElement(children: .combine)
