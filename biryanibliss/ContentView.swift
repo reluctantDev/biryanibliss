@@ -54,17 +54,31 @@ struct ContentView: View {
             return true
         }
 
-        // Check if a group selection failed due to conflicts
-        if lastFailedGroupName != nil {
+        // Check if a group selection failed due to conflicts (only if a group is selected)
+        if lastFailedGroupName != nil && selectedGroupIndex != nil {
             return true
         }
 
-        if gameManager.players.isEmpty {
-            return false // No conflicts if no players loaded
+        // If no group is selected, no conflicts (placeholder players can always be generated)
+        if selectedGroupIndex == nil {
+            return false
         }
 
-        let currentPlayerNames = gameManager.players.map { $0.name }
-        return gameManager.hasActiveSessionWithPlayers(currentPlayerNames)
+        // If a group is selected and players are loaded, check for conflicts
+        // Note: If players loaded successfully and there's an exact match, it's a resume scenario (not a conflict)
+        if selectedGroupIndex != nil && !gameManager.players.isEmpty {
+            let currentPlayerNames = gameManager.players.map { $0.name }
+            // If there's an exact match, it's a resume scenario, not a conflict
+            if gameManager.hasActiveSessionWithPlayers(currentPlayerNames) {
+                return false // Resume scenario - no conflict
+            }
+            // Check for partial conflicts (some players in other sessions)
+            return currentPlayerNames.contains { playerName in
+                gameManager.isPlayerNameInActiveSession(playerName)
+            }
+        }
+
+        return false
     }
 
     // Get conflict message for display
@@ -74,8 +88,8 @@ struct ContentView: View {
             return "You have reached the maximum limit of 10 game sessions. Please delete an existing session before creating a new one."
         }
 
-        // Check if a group selection failed due to conflicts
-        if let failedGroupName = lastFailedGroupName {
+        // Check if a group selection failed due to conflicts (only if a group is selected)
+        if let failedGroupName = lastFailedGroupName, selectedGroupIndex != nil {
             return getDetailedConflictMessage(for: failedGroupName)
         }
 
@@ -85,9 +99,9 @@ struct ContentView: View {
 
         let currentPlayerNames = gameManager.players.map { $0.name }
         if let activeSession = gameManager.getActiveSessionWithPlayers(currentPlayerNames) {
-            return "These players are already in active game '\(activeSession.name)'. Click Start Game to resume that game, or select a different group."
+            return "These players are already in active game '\(activeSession.name)'. Click Start Game to resume that game."
         } else {
-            return "One or more players are already in active games. Select a different group or wait for games to complete."
+            return "One or more players are already in active games."
         }
     }
 
@@ -98,16 +112,24 @@ struct ContentView: View {
             return "Session Limit Reached"
         }
 
-        if gameManager.players.isEmpty {
-            return "Start Game"
+        // Check if a group selection failed due to conflicts (only if a group is selected)
+        if lastFailedGroupName != nil && selectedGroupIndex != nil {
+            return "Cannot Start Game"
         }
 
-        let currentPlayerNames = gameManager.players.map { $0.name }
-        if gameManager.hasActiveSessionWithPlayers(currentPlayerNames) {
-            return "Resume Game"
-        } else {
-            return "Start Game"
+        if gameManager.players.isEmpty {
+            return "Start Game" // Will use placeholder players
         }
+
+        // Only allow resume for favorite groups, not placeholder players
+        if selectedGroupIndex != nil {
+            let currentPlayerNames = gameManager.players.map { $0.name }
+            if gameManager.hasActiveSessionWithPlayers(currentPlayerNames) {
+                return "Resume Game"
+            }
+        }
+
+        return "Start Game"
     }
 
     // Get detailed conflict message showing which players are in which games
@@ -164,7 +186,7 @@ struct ContentView: View {
             }
         }.joined(separator: "\n")
 
-        return "Cannot select '\(groupName)' because the following players are already in active games:\n\n\(conflictDetails)\n\nSelect a different group or wait for these games to complete."
+        return "Cannot select '\(groupName)' because the following players are already in active games:\n\n\(conflictDetails)"
     }
 
     var body: some View {
@@ -218,24 +240,24 @@ struct ContentView: View {
                         // Second row: Controls (only show if there are sessions)
                         if !gameManager.gameSessions.isEmpty {
                             HStack {
+                                // Active Games Filter Toggle (moved to leftmost)
+                                Button(action: {
+                                    showActiveGamesOnly.toggle()
+                                }) {
+                                    let activeCount = gameManager.gameSessions.filter { !$0.isCompleted }.count
+                                    let totalCount = gameManager.gameSessions.count
+                                    let displayCount = showActiveGamesOnly ? activeCount : totalCount
+                                    let displayText = showActiveGamesOnly ? "Active" : "All"
+
+                                    Text("\(displayText) (\(displayCount))")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(showActiveGamesOnly ? .blue : .secondary)
+                                }
+
                                 Spacer()
 
                                 HStack(alignment: .center, spacing: 16) {
-                                    // Active Games Filter Toggle
-                                    Button(action: {
-                                        showActiveGamesOnly.toggle()
-                                    }) {
-                                        let activeCount = gameManager.gameSessions.filter { !$0.isCompleted }.count
-                                        let totalCount = gameManager.gameSessions.count
-                                        let displayCount = showActiveGamesOnly ? activeCount : totalCount
-                                        let displayText = showActiveGamesOnly ? "Active" : "All"
-
-                                        Text("\(displayText) (\(displayCount))")
-                                            .font(.caption)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(showActiveGamesOnly ? .blue : .secondary)
-                                    }
-
                                     // Multi-select and delete controls
                                     if isSelectMode {
                                         // Delete Selected Button
@@ -637,16 +659,17 @@ struct ContentView: View {
                                         lastFailedGroupName = nil // Clear failed group tracking
                                         gameManager.resetGame() // Clear players when unselecting
                                     } else {
-                                        // Select new group - check for conflicts first
+                                        // Always select the group visually, regardless of conflicts
+                                        selectedGroupIndex = index
+
+                                        // Try to load players from the group
                                         let result = gameManager.loadPlayersFromGroup(group)
                                         if result.success {
-                                            selectedGroupIndex = index
                                             lastFailedGroupName = nil // Clear any previous failed group
                                         } else {
-                                            // Conflicts detected - don't select the group but show the conflict
-                                            selectedGroupIndex = nil
+                                            // Conflicts detected - keep group selected but track the failure
                                             lastFailedGroupName = group.name // Track failed group for UI display
-                                            print("Cannot select group '\(group.name)' - players already in active games: \(result.conflictingPlayers)")
+                                            print("Cannot load players from group '\(group.name)' - players already in active games: \(result.conflictingPlayers)")
                                         }
                                     }
                                 },
@@ -733,10 +756,10 @@ struct ContentView: View {
                         return
                     }
 
-                    // Check if there's already an active session with these players
+                    // Check if there's already an active session with these players (only for favorite groups)
                     let currentPlayerNames = gameManager.players.map { $0.name }
-                    if gameManager.hasActiveSessionWithPlayers(currentPlayerNames) {
-                        // Resume existing game instead of showing alert
+                    if selectedGroupIndex != nil && gameManager.hasActiveSessionWithPlayers(currentPlayerNames) {
+                        // Resume existing game for favorite groups only
                         if let activeSession = gameManager.getActiveSessionWithPlayers(currentPlayerNames) {
                             selectedGameSession = activeSession
                             gameManager.loadPlayersFromSession(activeSession)
@@ -745,7 +768,7 @@ struct ContentView: View {
                             showingGame = true
                         }
                     } else {
-                        // Create a new game session
+                        // Create a new game session (always for placeholder players, or new favorite group games)
                         gameManager.startGame() // Track buy-in amount
                         if let newSession = gameManager.createGameSession() {
                             selectedGameSession = newSession

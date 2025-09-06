@@ -91,14 +91,37 @@ class GameManager: ObservableObject {
     func generateDefaultPlayers() {
         players.removeAll()
 
-        let baseNames = ["Player 1", "Player 2", "Player 3", "Player 4", "Player 5", "Player 6",
-                        "Player 7", "Player 8", "Player 9", "Player 10", "Player 11", "Player 12"]
+        // Find the highest existing placeholder player number across all sessions
+        var maxPlayerNumber = 0
+
+        // Check all sessions (active and completed) for existing placeholder players
+        for session in gameSessions {
+            for player in session.players {
+                if player.name.hasPrefix("Player ") {
+                    let numberPart = String(player.name.dropFirst(7)) // Remove "Player "
+                    if let number = Int(numberPart) {
+                        maxPlayerNumber = max(maxPlayerNumber, number)
+                    }
+                }
+            }
+        }
+
+        // Check current active players as well
+        for player in players {
+            if player.name.hasPrefix("Player ") {
+                let numberPart = String(player.name.dropFirst(7)) // Remove "Player "
+                if let number = Int(numberPart) {
+                    maxPlayerNumber = max(maxPlayerNumber, number)
+                }
+            }
+        }
 
         var playersCreated = 0
-        var nameIndex = 0
+        var currentPlayerNumber = maxPlayerNumber + 1
 
-        while playersCreated < numberOfPlayers && nameIndex < baseNames.count {
-            let candidateName = baseNames[nameIndex]
+        // Generate incrementing placeholder players
+        while playersCreated < numberOfPlayers {
+            let candidateName = "Player \(currentPlayerNumber)"
 
             // Check if this name conflicts with active sessions
             if !isPlayerNameInActiveSession(candidateName) {
@@ -111,18 +134,7 @@ class GameManager: ObservableObject {
                     print("Skipping '\(candidateName)' - already in active game '\(conflictingGame)'")
                 }
             }
-            nameIndex += 1
-        }
-
-        // If we couldn't create enough players due to conflicts, create numbered alternatives
-        while playersCreated < numberOfPlayers {
-            let alternativeName = "Player \(nameIndex + 1)"
-            if !isPlayerNameInActiveSession(alternativeName) {
-                let newPlayer = Player(name: alternativeName, buyIns: 1, totalCredits: creditsPerBuyIn, score: 0)
-                players.append(newPlayer)
-                playersCreated += 1
-            }
-            nameIndex += 1
+            currentPlayerNumber += 1
         }
 
         // Update the total pot credits
@@ -371,7 +383,23 @@ class GameManager: ObservableObject {
             return (true, [])
         }
 
-        // Check for players already in active sessions
+        // Check if this group exactly matches an active session (for resume)
+        if hasActiveSessionWithPlayers(group.playerNames) {
+            // Allow loading for resume - load the players
+            players.removeAll()
+            numberOfPlayers = group.playerNames.count
+            lastLoadedGroupName = group.name
+
+            for playerName in group.playerNames {
+                let player = Player(name: playerName, buyIns: 1, totalCredits: creditsPerBuyIn, score: 0)
+                players.append(player)
+            }
+
+            updateTotalPotCredits()
+            return (true, []) // Success - this is a resume scenario
+        }
+
+        // Check for players already in active sessions (partial conflicts)
         var conflictingPlayers: [String] = []
         for playerName in group.playerNames {
             if isPlayerNameInActiveSession(playerName) {
